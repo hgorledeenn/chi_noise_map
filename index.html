@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="utf-8" />
-    <title>Chicago Building Distance to Train</title>
+    <title>Chicago Building Train Noise Exposure</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
 
     <!-- MapLibre GL JS: the library that draws the map. (Mapbox GL JS can't read
@@ -197,7 +197,7 @@
     <div id="map"></div>
     <!-- Add inside <body>, after <div id="map"></div> -->
     <div id="legend">
-        <h4>Distance to nearest train (m)</h4>
+        <h4>Daily train noise exposure</h4>
         <div class="ramp"></div>
         <div class="ticks"></div>
         <div class="scope"></div>
@@ -205,8 +205,8 @@
 
     <!-- Add inside <body> -->
     <div id="panel">
-        <h1>Chicago Buildings &amp; Train Access</h1>
-        <p>Colored by straight-line distance to the nearest train station: a city-wide area average when zoomed
+        <h1>Chicago Buildings &amp; Train Noise</h1>
+        <p>Colored by modeled daily noise exposure from nearby trains: a city-wide area average when zoomed
             out, individual buildings once you zoom in. Search your address to jump there.</p>
         <div id="search"></div>
     </div>
@@ -237,11 +237,13 @@
             hash: true          // this hash lets the url contain specific zoom/lat/lon info so that specific views are shareable
         });
 
-        // Single sequential green->blue ramp (same 9 steps everywhere), applied
-        // to each zoom level's own quantiles below: nearest-to-train is #b6d9a5,
-        // farthest is #1a3c94, with the 7 steps between interpolated in OKLab
-        // (not raw RGB) so the middle of the ramp doesn't muddy out.
-        const COLOR_STEPS = ['#b6d9a5', '#a0c6a6', '#8bb3a6', '#769fa6', '#618ca4', '#4d79a1', '#3b669d', '#295299', '#1a3c94'];
+        // Single sequential gray->yellow-green ramp (same 16 steps everywhere),
+        // applied to each zoom level's own quantiles below: no measurable noise
+        // is #424242, loudest is #d3ff59, with the 14 steps between interpolated
+        // in OKLab (not raw RGB) so the middle of the ramp doesn't muddy out.
+        // 16 steps (rather than the original 9) spreads the transition across
+        // more, smaller color jumps for a more gradual look.
+        const COLOR_STEPS = ['#424242', '#4b4d46', '#535949', '#5c654c', '#66714f', '#6f7d52', '#788954', '#829556', '#8ca258', '#95af59', '#9fbc5a', '#a9c95b', '#b4d65b', '#bee45b', '#c8f15a', '#d3ff59'];
 
         // Four levels of detail, evenly spaced 2 zoom levels apart: three
         // square-grid averages (300m / 120m / 45m cells, coarsest to finest)
@@ -251,14 +253,17 @@
         // slow blend. The legend thresholds in updateLegend() below (8/10/12)
         // sit at the midpoint of each handoff. Each level has its own quantile
         // stops -- see scripts/aggregate_buildings.py / grid_agg_stats.json and
-        // scripts/prep_buildings.py / dist_train_stats.json -- because an
+        // scripts/prep_buildings.py / daily_noise_stats.json -- because an
         // average over a grid cell has a narrower spread than raw per-building
-        // distances, so reusing one set of stops across levels would waste most
-        // of the ramp.
+        // noise values, so reusing one set of stops across levels would waste
+        // most of the ramp. daily_noise is heavily zero-inflated (most
+        // buildings/cells have no modeled train noise at all), so stop 0 is
+        // pinned to 0 and the remaining 8 stops are quantiles of the NONZERO
+        // subset only -- see color_stops() in those scripts.
         function gridDescribe(p) {
             const noun = p.building_count === 1 ? 'building' : 'buildings';
             return {
-                name: `${Math.round(p.dist_train_mean).toLocaleString()} m avg. from nearest train`,
+                name: `${Math.round(p.daily_noise_mean).toLocaleString()} avg. daily noise exposure`,
                 sub: `Area average across ${p.building_count.toLocaleString()} ${noun}`
             };
         }
@@ -267,51 +272,54 @@
                 id: 'grid300',
                 source: 'grid_agg',
                 sourceLayer: 'grid300',
-                property: 'dist_train_mean',
-                quantiles: [7.551926323949385, 214.7667224885634, 578.9688599943956, 1059.6739850924096, 1464.255916163566, 2028.956593188926, 3239.7088437820535, 5572.30473584788, 11330.780789718117],
+                property: 'daily_noise_mean',
+                quantiles: [0.0, 2865.289, 6825.915, 11504.985, 18002.319, 25987.967, 32971.515, 40938.054, 48461.711, 52204.207, 56413.489, 66685.723, 79573.837, 98349.208, 122482.541, 561959.905],
                 minzoom: 0,
                 maxzoom: 8.15,
                 fade: [7.85, 0.85, 8.15, 0],
                 legendScope: 'City-wide average · 300 m cells',
-                describe: gridDescribe
+                describe: gridDescribe,
+                stroke: false
             },
             {
                 id: 'grid120',
                 source: 'grid_agg',
                 sourceLayer: 'grid120',
-                property: 'dist_train_mean',
-                quantiles: [0.08439909537557444, 204.37982342612943, 549.9534721276348, 994.8408744850608, 1380.7736545065034, 1927.3105365822285, 3079.2579823676556, 5126.384717119177, 11410.690339631705],
+                property: 'daily_noise_mean',
+                quantiles: [0.0, 8314.017, 16163.472, 20879.186, 27395.124, 34884.839, 44838.365, 49658.483, 52341.352, 56064.72, 64942.382, 76586.167, 88304.323, 103382.584, 137758.284, 594655.229],
                 minzoom: 7.85,
                 maxzoom: 10.15,
                 fade: [7.85, 0, 8.15, 0.85, 9.85, 0.85, 10.15, 0],
                 legendScope: 'District average · 120 m cells',
-                describe: gridDescribe
+                describe: gridDescribe,
+                stroke: false
             },
             {
                 id: 'grid45',
                 source: 'grid_agg',
                 sourceLayer: 'grid45',
-                property: 'dist_train_mean',
-                quantiles: [0.004637879645978241, 236.74784404875317, 601.4711554926738, 1046.8647598035905, 1442.1580052783324, 2031.169751441493, 3175.652418914743, 5028.825236183827, 11423.712329985385],
+                property: 'daily_noise_mean',
+                quantiles: [0.0, 15507.995, 17248.146, 23400.529, 30603.99, 35254.591, 47561.468, 50439.315, 52566.694, 56086.792, 66011.613, 78004.333, 89298.744, 105242.672, 139197.656, 600481.402],
                 minzoom: 9.85,
                 maxzoom: 12.15,
                 fade: [9.85, 0, 10.15, 0.85, 11.85, 0.85, 12.15, 0],
                 legendScope: 'Block-level average · 45 m cells',
-                describe: gridDescribe
+                describe: gridDescribe,
+                stroke: false
             },
             {
                 id: 'buildings',
                 source: 'buildings',
                 sourceLayer: 'buildings',
-                property: 'dist_train',
-                quantiles: [0.004637879645978241, 290.3049197666629, 676.3302439582685, 1119.4314081662158, 1528.3332003506455, 2131.0412480960113, 3267.27966541269, 4983.7477055316585, 11439.427554262727],
+                property: 'daily_noise',
+                quantiles: [0.0, 16148.718367544234, 17393.47065165248, 21743.196641208004, 26719.382199093205, 34718.936628368334, 46252.21452828782, 49895.50101523852, 52183.72272255321, 54162.91486591312, 64497.21679980325, 74255.74308305912, 82563.94532754555, 100121.74604774364, 136546.4979931388, 600481.4024419838],
                 minzoom: 11.85,
                 maxzoom: 24,
                 fade: [11.85, 0, 12.15, 0.75],
                 legendScope: 'Individual buildings',
                 describe: (p) => ({
-                    name: `${Math.round(p.dist_train).toLocaleString()} m from nearest train`,
-                    sub: `Stories: ${p.tot_stories}<br>Max height: ${p.max_height}<br>Intersections nearby: ${p.num_intersections}`
+                    name: `${Math.round(p.daily_noise).toLocaleString()} daily noise exposure`,
+                    sub: `From one train pass: ${Math.round(p.noise_from_one_train).toLocaleString()}<br>Intersected daily noise: ${Math.round(p.intersected_daily_noise).toLocaleString()}<br>Radial samples: ${p.num_radials}`
                 })
             }
         ];
@@ -334,9 +342,10 @@
 
         // Wait until the basemap is ready, THEN add our data on top.
         map.on('load', () => {
-            // Individual buildings, built with tippecanoe from coded_bldgs.geojson
-            // (reprojected to lon/lat; see scripts/prep_buildings.py). Each feature
-            // already carries a numeric top-level id, used for hover feature-state.
+            // Individual buildings, built with tippecanoe from
+            // nb3_buildings_coded.geojson (reprojected to lon/lat; see
+            // scripts/prep_buildings.py). Each feature already carries a numeric
+            // top-level id, used for hover feature-state.
             map.addSource('buildings', {
                 type: 'vector',
                 url: 'pmtiles://coded_bldgs.pmtiles'
@@ -352,8 +361,11 @@
                 promoteId: { grid300: 'cell_id', grid120: 'cell_id', grid45: 'cell_id' }
             });
 
-            // One fill + border + hover-outline trio per level, ordered coarsest to
-            // most detailed so buildings paint on top once they fade in.
+            // One fill + (optional border) + hover-outline trio per level, ordered
+            // coarsest to most detailed so buildings paint on top once they fade
+            // in. The grid levels skip the border -- at low zoom their square
+            // cell edges read as a distracting grid overlay rather than useful
+            // detail, so only individual buildings keep an outline.
             for (const level of LEVELS) {
                 map.addLayer({
                     id: `${level.id}-fill`,
@@ -368,19 +380,21 @@
                     }
                 });
 
-                map.addLayer({
-                    id: `${level.id}-line`,
-                    type: 'line',
-                    source: level.source,
-                    'source-layer': level.sourceLayer,
-                    minzoom: level.minzoom,
-                    maxzoom: level.maxzoom,
-                    paint: {
-                        'line-color': '#000',
-                        'line-width': 0.2,
-                        'line-opacity': fadeOpacity(level)
-                    }
-                });
+                if (level.stroke !== false) {
+                    map.addLayer({
+                        id: `${level.id}-line`,
+                        type: 'line',
+                        source: level.source,
+                        'source-layer': level.sourceLayer,
+                        minzoom: level.minzoom,
+                        maxzoom: level.maxzoom,
+                        paint: {
+                            'line-color': '#000',
+                            'line-width': 0.2,
+                            'line-opacity': fadeOpacity(level)
+                        }
+                    });
+                }
 
                 // A bright outline that appears ONLY on the hovered cell/building.
                 map.addLayer({

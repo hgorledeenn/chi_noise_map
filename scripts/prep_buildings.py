@@ -1,21 +1,31 @@
 """
-Stream coded_bldgs.geojson (EPSG:26971, Illinois State Plane East meters) into a
-line-delimited GeoJSON file in EPSG:4326 (lon/lat) for tippecanoe, dropping the
-redundant WKT text properties (they duplicate the real geometry as text and
-roughly double the file size). Also assigns a sequential integer feature id
-(needed for Mapbox hover feature-state) and records dist_train stats/quantiles
-for building the color scale.
+Stream nb3_buildings_coded.geojson (EPSG:26971, Illinois State Plane East meters)
+into a line-delimited GeoJSON file in EPSG:4326 (lon/lat) for tippecanoe. Also
+assigns a sequential integer feature id (needed for Mapbox hover feature-state)
+and records daily_noise stats/quantiles for building the color scale.
+
+daily_noise is heavily zero-inflated (~80% of buildings have no modeled train
+noise at all), so a plain quantile split would waste most of the color ramp on
+one repeated value. Instead the first color stop is pinned to 0 (no noise) and
+the remaining 8 stops are quantiles of the NONZERO subset only, spreading the
+ramp across the buildings that actually have measurable noise.
 """
 import json
 import sys
 
 import pyproj
 
-SRC = "coded_bldgs.geojson"
-DST = "coded_bldgs_4326.geojsonl"
+SRC = "nb3_buildings_coded.geojson"
+DST = "nb3_buildings_4326.geojsonl"
 SRC_CRS = "EPSG:26971"
 
-KEEP_PROPS = ("dist_train", "num_intersections", "tot_stories", "max_height")
+KEEP_PROPS = (
+    "daily_noise",
+    "noise_from_one_train",
+    "intersected_daily_noise",
+    "intersected_noise_from_one_train",
+    "num_radials",
+)
 
 transformer = pyproj.Transformer.from_crs(SRC_CRS, "EPSG:4326", always_xy=True)
 
@@ -32,15 +42,34 @@ def reproject_multipolygon(coords):
     return coords
 
 
+def color_stops(values, n_stops=16):
+    """0, then n_stops - 1 quantiles of the nonzero subset -- see module
+    docstring. More stops than colors in the map's COLOR_STEPS ramp gives a
+    more gradual transition, since each stop only has to cover a narrower
+    slice of the (heavily skewed) nonzero range."""
+    nonzero = sorted(v for v in values if v > 0)
+    n = len(nonzero)
+
+    def pct(p):
+        idx = min(n - 1, int(p * (n - 1)))
+        return nonzero[idx]
+
+    return [0.0] + [pct(i / (n_stops - 1)) for i in range(1, n_stops)]
+
+
 def main():
-    dist_train_values = []
+    daily_noise_values = []
     n_written = 0
     n_skipped = 0
 
     with open(SRC, "r") as fin, open(DST, "w") as fout:
-        for i, line in enumerate(fin):
-            if i < 4:
+        started = False
+        for line in fin:
+            if not started:
+                if line.strip() == '"features": [':
+                    started = True
                 continue
+
             line = line.strip().rstrip(",")
             if line in ("[", "]", "}", ""):
                 continue
@@ -48,9 +77,9 @@ def main():
             feat = json.loads(line)
             props = feat["properties"]
 
-            dist_train = props.get("dist_train")
-            if dist_train is not None:
-                dist_train_values.append(dist_train)
+            daily_noise = props.get("daily_noise")
+            if daily_noise is not None:
+                daily_noise_values.append(daily_noise)
 
             geom = feat["geometry"]
             if geom["type"] != "MultiPolygon":
@@ -71,24 +100,27 @@ def main():
             if n_written % 100000 == 0:
                 print(f"  ...{n_written} features written", file=sys.stderr)
 
-    dist_train_values.sort()
-    n = len(dist_train_values)
+    daily_noise_values.sort()
+    n = len(daily_noise_values)
+    n_nonzero = sum(1 for v in daily_noise_values if v > 0)
 
     def pct(p):
         idx = min(n - 1, int(p * (n - 1)))
-        return dist_train_values[idx]
+        return daily_noise_values[idx]
 
     stats = {
         "count": n_written,
         "skipped_non_multipolygon": n_skipped,
-        "dist_train_min": dist_train_values[0],
-        "dist_train_max": dist_train_values[-1],
-        "dist_train_quantiles": {
+        "daily_noise_min": daily_noise_values[0],
+        "daily_noise_max": daily_noise_values[-1],
+        "daily_noise_nonzero_fraction": n_nonzero / n,
+        "daily_noise_quantiles": {
             f"p{int(p * 100)}": pct(p)
             for p in (0, 0.1, 0.25, 0.4, 0.5, 0.6, 0.75, 0.9, 1.0)
         },
+        "daily_noise_color_stops": color_stops(daily_noise_values),
     }
-    with open("dist_train_stats.json", "w") as f:
+    with open("daily_noise_stats.json", "w") as f:
         json.dump(stats, f, indent=2)
 
     print(json.dumps(stats, indent=2))

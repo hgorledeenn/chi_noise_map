@@ -1,13 +1,18 @@
 .DS_Store
 
-# Source building data (819MB) and its intermediate reprojected form (286MB) --
-# both far too large for git. Only the built coded_bldgs.pmtiles (~44MB) is
-# committed; regenerate it from coded_bldgs.geojson with scripts/prep_buildings.py
+# Source building data and its intermediate reprojected form -- both far too
+# large for git. Only the built coded_bldgs.pmtiles (~33MB) is committed;
+# regenerate it from nb3_buildings_coded.geojson with scripts/prep_buildings.py
 # + tippecanoe if the source data changes.
+nb3_buildings_coded.geojson
+nb3_buildings_4326.geojsonl
+
+# Superseded by nb3_buildings_coded.geojson / nb3_buildings_4326.geojsonl above --
+# kept ignored rather than deleted in case the old source is still wanted.
 coded_bldgs.geojson
 coded_bldgs_4326.geojsonl
 
-# Intermediate square-grid GeoJSON, regenerable from coded_bldgs_4326.geojsonl with
+# Intermediate square-grid GeoJSON, regenerable from nb3_buildings_4326.geojsonl with
 # scripts/aggregate_buildings.py + tippecanoe. Only the built chicago_grid_agg.pmtiles
 # is committed.
 grid300.geojson

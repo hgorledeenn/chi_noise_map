@@ -1,5 +1,5 @@
 """
-Aggregate the reprojected buildings (coded_bldgs_4326.geojsonl, from
+Aggregate the reprojected buildings (nb3_buildings_4326.geojsonl, from
 prep_buildings.py) into square grids at three cell sizes, so the map can show
 a coarse city-wide summary at low zoom, an intermediate level of detail, and
 switch to individual buildings once zoomed in close.
@@ -17,7 +17,7 @@ geometries.
 import json
 import math
 
-SRC = "coded_bldgs_4326.geojsonl"
+SRC = "nb3_buildings_4326.geojsonl"
 REF_LAT = 41.85  # Chicago-ish; used to convert meters -> degrees longitude
 METERS_PER_DEG_LAT = 111320.0
 METERS_PER_DEG_LON = METERS_PER_DEG_LAT * math.cos(math.radians(REF_LAT))
@@ -51,13 +51,28 @@ def cell_polygon(row, col, dlat, dlon):
     return {"type": "Polygon", "coordinates": [ring]}
 
 
+def color_stops(values, n_stops=16):
+    """0, then n_stops - 1 quantiles of the nonzero subset -- mirrors
+    prep_buildings.py's color_stops, since grid-cell means are zero-inflated
+    too: plenty of cells average out to exactly 0 when every building inside
+    them has no noise."""
+    nonzero = sorted(v for v in values if v > 0)
+    n = len(nonzero)
+
+    def pct(p):
+        idx = min(n - 1, int(p * (n - 1)))
+        return nonzero[idx]
+
+    return [0.0] + [pct(i / (n_stops - 1)) for i in range(1, n_stops)]
+
+
 def main():
     buckets = {size: {} for size, _ in GRIDS}  # size -> {(row, col): [sum, count]}
 
     with open(SRC) as f:
         for i, line in enumerate(f):
             feat = json.loads(line)
-            dist_train = feat["properties"]["dist_train"]
+            daily_noise = feat["properties"]["daily_noise"]
             lon, lat = rough_point(feat["geometry"])
 
             for size, _ in GRIDS:
@@ -65,7 +80,7 @@ def main():
                 dlon = size / METERS_PER_DEG_LON
                 cell = (math.floor(lat / dlat), math.floor(lon / dlon))
                 bucket = buckets[size].setdefault(cell, [0.0, 0])
-                bucket[0] += dist_train
+                bucket[0] += daily_noise
                 bucket[1] += 1
 
             if (i + 1) % 200000 == 0:
@@ -84,7 +99,7 @@ def main():
                     "type": "Feature",
                     "properties": {
                         "cell_id": f"{size}_{row}_{col}",
-                        "dist_train_mean": round(mean, 3),
+                        "daily_noise_mean": round(mean, 3),
                         "building_count": count,
                     },
                     "geometry": cell_polygon(row, col, dlat, dlon),
@@ -102,12 +117,13 @@ def main():
         stats[f"grid{size}"] = {
             "cell_size_m": size,
             "cell_count": n,
-            "dist_train_mean_min": means[0],
-            "dist_train_mean_max": means[-1],
+            "daily_noise_mean_min": means[0],
+            "daily_noise_mean_max": means[-1],
             "quantiles": {
                 f"p{int(p * 100)}": pct(p)
                 for p in (0, 0.1, 0.25, 0.4, 0.5, 0.6, 0.75, 0.9, 1.0)
             },
+            "color_stops": color_stops(means),
         }
         print(f"grid{size}: {n} cells -> {fname}")
 
