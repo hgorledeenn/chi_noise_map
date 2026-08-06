@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <title>Chicago Building Distance to Train</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <!-- MapLibre GL JS: the library that draws the map. (Mapbox GL JS can't read
+         .pmtiles files directly in the browser -- addProtocol is a MapLibre-only
+         feature -- so this map uses MapLibre + a key-free basemap instead.) -->
+    <link href="https://unpkg.com/maplibre-gl@4/dist/maplibre-gl.css" rel="stylesheet" />
+    <script src="https://unpkg.com/maplibre-gl@4/dist/maplibre-gl.js"></script>
+
+    <!-- PMTiles: lets the browser read the .pmtiles vector tile archive directly
+         over HTTP range requests, with no tile server needed. -->
+    <script src="https://unpkg.com/pmtiles@3.0.6/dist/pmtiles.js"></script>
+
+    <!-- Geocoder plugin: powers the address search box. Backed by Nominatim
+         (OpenStreetMap), so no API key is required. -->
+    <link rel="stylesheet" href="https://unpkg.com/@maplibre/maplibre-gl-geocoder@1/dist/maplibre-gl-geocoder.css"
+        type="text/css" />
+    <script src="https://unpkg.com/@maplibre/maplibre-gl-geocoder@1/dist/maplibre-gl-geocoder.js"></script>
+
+    <style>
+        html,
+        body {
+            margin: 0;
+            height: 100%;
+            font-family: system-ui, sans-serif;
+        }
+
+        #map {
+            position: absolute;
+            inset: 0;
+        }
+
+        /* the map fills the window */
+
+        /* Add to your <style> block */
+        #legend {
+            position: absolute;
+            z-index: 3;
+            bottom: 18px;
+            right: 12px;
+            background: #fff;
+            padding: 10px 12px;
+            border: 1px solid #0000ff;
+            border-radius: 2px;
+            font-size: 12px;
+            color: #0000ff;
+            width: 190px;
+        }
+
+        #legend h4 {
+            margin: 0 0 8px;
+            font-size: 12px;
+        }
+
+        #legend .ramp {
+            height: 12px;
+            border-radius: 2px;
+            margin-bottom: 4px;
+        }
+
+        #legend .ticks {
+            display: flex;
+            justify-content: space-between;
+            font-size: 10px;
+            color: #3a3aaa;
+        }
+
+        #legend .scope {
+            font-size: 10px;
+            color: #3a3aaa;
+            margin-top: 6px;
+        }
+
+        /* Add to your <style> block */
+        #tooltip {
+            position: absolute;
+            z-index: 3;
+            pointer-events: none;
+            /* let the mouse "pass through" to the map */
+            display: none;
+            /* hidden until we hover a building */
+            background: #fff;
+            padding: 8px 10px;
+            border: 1px solid #0000ff;
+            border-radius: 2px;
+            font-size: 13px;
+            line-height: 1.35;
+            max-width: 220px;
+            color: #0000ff;
+        }
+
+        #tooltip .name {
+            font-weight: 900;
+        }
+
+        #tooltip .sub {
+            color: #3a3aaa;
+        }
+
+        /* Add to your <style> block */
+        #drawer {
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 4;
+            background: #fff;
+            color: #0000ff;
+            padding: 16px 18px calc(16px + env(safe-area-inset-bottom));
+            border-top: 1px solid #0000ff;
+            transform: translateY(110%);
+            /* parked off-screen */
+            transition: transform .25s ease;
+        }
+
+        #drawer.open {
+            transform: translateY(0);
+        }
+
+        /* slides up when open */
+        #drawer .name {
+            font-weight: 900;
+            font-size: 16px;
+        }
+
+        #drawer .sub {
+            color: #3a3aaa;
+            margin-top: 4px;
+        }
+
+        #drawer .close {
+            position: absolute;
+            top: 8px;
+            right: 12px;
+            border: none;
+            background: none;
+            font-size: 22px;
+            cursor: pointer;
+            color: #0000ff;
+        }
+
+        /* A floating title card, top-left, with the search box inside it. */
+        #panel {
+            position: absolute;
+            z-index: 5;
+            top: 14px;
+            left: 14px;
+            width: min(360px, calc(100% - 28px));
+            background: #fff;
+            color: #0000ff;
+            border: 1px solid #0000ff;
+            border-radius: 2px;
+            padding: 16px 18px;
+        }
+
+        #panel h1 {
+            margin: 0 0 6px;
+            font-size: 22px;
+            font-weight: 900;
+            line-height: 1.15;
+        }
+
+        #panel p {
+            margin: 0 0 12px;
+            font-size: 14px;
+        }
+
+        /* make the geocoder fill the panel */
+        #panel .maplibregl-ctrl-geocoder {
+            width: 100%;
+            max-width: none;
+            box-shadow: none;
+            font-family: inherit;
+            border: 1px solid #0000ff;
+            border-radius: 2px;
+        }
+
+        /* on phones, let the card span the whole top */
+        @media (max-width: 600px) {
+            #panel {
+                top: 0;
+                left: 0;
+                width: 100%;
+                border-width: 0 0 1px;
+                border-radius: 0;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div id="map"></div>
+    <!-- Add inside <body>, after <div id="map"></div> -->
+    <div id="legend">
+        <h4>Distance to nearest train (m)</h4>
+        <div class="ramp"></div>
+        <div class="ticks"></div>
+        <div class="scope"></div>
+    </div>
+
+    <!-- Add inside <body> -->
+    <div id="panel">
+        <h1>Chicago Buildings &amp; Train Access</h1>
+        <p>Colored by straight-line distance to the nearest train station: a city-wide area average when zoomed
+            out, individual buildings once you zoom in. Search your address to jump there.</p>
+        <div id="search"></div>
+    </div>
+
+    <!-- Add inside <body> -->
+    <div id="tooltip"></div>
+
+    <!-- Add inside <body> -->
+    <div id="drawer">
+        <button class="close" aria-label="Close">×</button>
+        <div class="name"></div>
+        <div class="sub"></div>
+    </div>
+
+    <script>
+        // Register the pmtiles:// protocol so MapLibre can read the .pmtiles
+        // archive directly over HTTP range requests (no tile server needed).
+        const protocol = new pmtiles.Protocol();
+        maplibregl.addProtocol('pmtiles', protocol.tile);
+
+        const map = new maplibregl.Map({
+            container: 'map',                          // matches <div id="map">
+            // CARTO's free, key-free vector basemap -- a dark style with no
+            // account/token required, so this project stays fully self-contained.
+            style: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
+            center: [-87.6298, 41.8781],                // [longitude, latitude] of Chicago
+            zoom: 10.5,
+            hash: true          // this hash lets the url contain specific zoom/lat/lon info so that specific views are shareable
+        });
+
+        // Single sequential green->blue ramp (same 9 steps everywhere), applied
+        // to each zoom level's own quantiles below: nearest-to-train is #b6d9a5,
+        // farthest is #1a3c94, with the 7 steps between interpolated in OKLab
+        // (not raw RGB) so the middle of the ramp doesn't muddy out.
+        const COLOR_STEPS = ['#b6d9a5', '#a0c6a6', '#8bb3a6', '#769fa6', '#618ca4', '#4d79a1', '#3b669d', '#295299', '#1a3c94'];
+
+        // Four levels of detail, evenly spaced 2 zoom levels apart: three
+        // square-grid averages (300m / 120m / 45m cells, coarsest to finest)
+        // and individual buildings. Each level's minzoom/maxzoom overlaps its
+        // neighbor by a small 0.3-zoom window -- just enough for a quick
+        // crossfade at the handoff instead of an abrupt pop, without a long,
+        // slow blend. The legend thresholds in updateLegend() below (8/10/12)
+        // sit at the midpoint of each handoff. Each level has its own quantile
+        // stops -- see scripts/aggregate_buildings.py / grid_agg_stats.json and
+        // scripts/prep_buildings.py / dist_train_stats.json -- because an
+        // average over a grid cell has a narrower spread than raw per-building
+        // distances, so reusing one set of stops across levels would waste most
+        // of the ramp.
+        function gridDescribe(p) {
+            const noun = p.building_count === 1 ? 'building' : 'buildings';
+            return {
+                name: `${Math.round(p.dist_train_mean).toLocaleString()} m avg. from nearest train`,
+                sub: `Area average across ${p.building_count.toLocaleString()} ${noun}`
+            };
+        }
+        const LEVELS = [
+            {
+                id: 'grid300',
+                source: 'grid_agg',
+                sourceLayer: 'grid300',
+                property: 'dist_train_mean',
+                quantiles: [7.551926323949385, 214.7667224885634, 578.9688599943956, 1059.6739850924096, 1464.255916163566, 2028.956593188926, 3239.7088437820535, 5572.30473584788, 11330.780789718117],
+                minzoom: 0,
+                maxzoom: 8.15,
+                fade: [7.85, 0.85, 8.15, 0],
+                legendScope: 'City-wide average · 300 m cells',
+                describe: gridDescribe
+            },
+            {
+                id: 'grid120',
+                source: 'grid_agg',
+                sourceLayer: 'grid120',
+                property: 'dist_train_mean',
+                quantiles: [0.08439909537557444, 204.37982342612943, 549.9534721276348, 994.8408744850608, 1380.7736545065034, 1927.3105365822285, 3079.2579823676556, 5126.384717119177, 11410.690339631705],
+                minzoom: 7.85,
+                maxzoom: 10.15,
+                fade: [7.85, 0, 8.15, 0.85, 9.85, 0.85, 10.15, 0],
+                legendScope: 'District average · 120 m cells',
+                describe: gridDescribe
+            },
+            {
+                id: 'grid45',
+                source: 'grid_agg',
+                sourceLayer: 'grid45',
+                property: 'dist_train_mean',
+                quantiles: [0.004637879645978241, 236.74784404875317, 601.4711554926738, 1046.8647598035905, 1442.1580052783324, 2031.169751441493, 3175.652418914743, 5028.825236183827, 11423.712329985385],
+                minzoom: 9.85,
+                maxzoom: 12.15,
+                fade: [9.85, 0, 10.15, 0.85, 11.85, 0.85, 12.15, 0],
+                legendScope: 'Block-level average · 45 m cells',
+                describe: gridDescribe
+            },
+            {
+                id: 'buildings',
+                source: 'buildings',
+                sourceLayer: 'buildings',
+                property: 'dist_train',
+                quantiles: [0.004637879645978241, 290.3049197666629, 676.3302439582685, 1119.4314081662158, 1528.3332003506455, 2131.0412480960113, 3267.27966541269, 4983.7477055316585, 11439.427554262727],
+                minzoom: 11.85,
+                maxzoom: 24,
+                fade: [11.85, 0, 12.15, 0.75],
+                legendScope: 'Individual buildings',
+                describe: (p) => ({
+                    name: `${Math.round(p.dist_train).toLocaleString()} m from nearest train`,
+                    sub: `Stories: ${p.tot_stories}<br>Max height: ${p.max_height}<br>Intersections nearby: ${p.num_intersections}`
+                })
+            }
+        ];
+
+        // Build a ['interpolate', ['linear'], ['get', property], value, color, ...]
+        // expression by zipping this level's own quantiles with the shared ramp.
+        function colorRamp(level) {
+            const stops = level.quantiles.flatMap((v, i) => [v, COLOR_STEPS[i]]);
+            return ['interpolate', ['linear'], ['get', level.property], ...stops];
+        }
+
+        // A short zoom-based opacity ramp for a quick crossfade at each level's
+        // edges, instead of an abrupt pop. A "zoom" expression may ONLY appear as
+        // the sole, top-level value of a paint property -- not wrapped in a case,
+        // match, or arithmetic op -- so this can't also brighten on hover; the
+        // white outline layer (added below) carries the hover feedback instead.
+        function fadeOpacity(level) {
+            return ['interpolate', ['linear'], ['zoom'], ...level.fade];
+        }
+
+        // Wait until the basemap is ready, THEN add our data on top.
+        map.on('load', () => {
+            // Individual buildings, built with tippecanoe from coded_bldgs.geojson
+            // (reprojected to lon/lat; see scripts/prep_buildings.py). Each feature
+            // already carries a numeric top-level id, used for hover feature-state.
+            map.addSource('buildings', {
+                type: 'vector',
+                url: 'pmtiles://coded_bldgs.pmtiles'
+            });
+
+            // Three square-grid averages (300m/120m/45m), built with tippecanoe
+            // from scripts/aggregate_buildings.py. promoteId lets the string
+            // "size_row_col" cell id (rather than a numeric tile id) drive hover
+            // feature-state.
+            map.addSource('grid_agg', {
+                type: 'vector',
+                url: 'pmtiles://chicago_grid_agg.pmtiles',
+                promoteId: { grid300: 'cell_id', grid120: 'cell_id', grid45: 'cell_id' }
+            });
+
+            // One fill + border + hover-outline trio per level, ordered coarsest to
+            // most detailed so buildings paint on top once they fade in.
+            for (const level of LEVELS) {
+                map.addLayer({
+                    id: `${level.id}-fill`,
+                    type: 'fill',
+                    source: level.source,
+                    'source-layer': level.sourceLayer,
+                    minzoom: level.minzoom,
+                    maxzoom: level.maxzoom,
+                    paint: {
+                        'fill-color': colorRamp(level),
+                        'fill-opacity': fadeOpacity(level)
+                    }
+                });
+
+                map.addLayer({
+                    id: `${level.id}-line`,
+                    type: 'line',
+                    source: level.source,
+                    'source-layer': level.sourceLayer,
+                    minzoom: level.minzoom,
+                    maxzoom: level.maxzoom,
+                    paint: {
+                        'line-color': '#000',
+                        'line-width': 0.2,
+                        'line-opacity': fadeOpacity(level)
+                    }
+                });
+
+                // A bright outline that appears ONLY on the hovered cell/building.
+                map.addLayer({
+                    id: `${level.id}-hover`,
+                    type: 'line',
+                    source: level.source,
+                    'source-layer': level.sourceLayer,
+                    minzoom: level.minzoom,
+                    maxzoom: level.maxzoom,
+                    paint: {
+                        'line-color': '#ffffff',
+                        'line-width': ['case', ['boolean', ['feature-state', 'hover'], false], 2, 0],
+                        'line-opacity': fadeOpacity(level)
+                    }
+                });
+            }
+
+            // CTA train lines, reprojected to lon/lat from nb2_cta_lines_updated.geojson
+            // (see scripts/prep_cta_lines.py). Only 23 short segments, so this is
+            // served as a plain GeoJSON source rather than tiled like the buildings/
+            // grids -- and added last, after every LEVELS layer above, so it always
+            // paints on top of them regardless of zoom. generateId assigns each
+            // feature a numeric id for hover feature-state (there's no natural
+            // unique id in the source data to promote).
+            map.addSource('cta_lines', {
+                type: 'geojson',
+                data: 'cta_lines_4326.geojson',
+                generateId: true
+            });
+
+            // A dark casing under the colored line, wider than it, so the line
+            // reads clearly against both the light-green and dark-blue ends of
+            // the building color ramp.
+            map.addLayer({
+                id: 'cta-lines-casing',
+                type: 'line',
+                source: 'cta_lines',
+                paint: {
+                    'line-color': '#0b1a33',
+                    'line-width': ['interpolate', ['linear'], ['zoom'], 8, 2.5, 16, 6],
+                    'line-opacity': 0.9
+                }
+            });
+            map.addLayer({
+                id: 'cta-lines-fill',
+                type: 'line',
+                source: 'cta_lines',
+                paint: {
+                    'line-color': '#e8302a',
+                    'line-width': ['interpolate', ['linear'], ['zoom'], 8, 1.2, 16, 3.5]
+                }
+            });
+            // A bright outline that appears ONLY on the hovered segment.
+            map.addLayer({
+                id: 'cta-lines-hover',
+                type: 'line',
+                source: 'cta_lines',
+                paint: {
+                    'line-color': '#ffffff',
+                    'line-width': ['case', ['boolean', ['feature-state', 'hover'], false], 8, 0],
+                    'line-opacity': 0.5
+                }
+            });
+
+            const tooltip = document.getElementById('tooltip');
+            const drawer = document.getElementById('drawer');
+
+            // Only devices with a real mouse get hover behavior (desktops/laptops).
+            const canHover = window.matchMedia('(hover: hover)').matches;
+
+            // Wire up hover-tooltip (desktop) or tap-drawer (touch) for one level.
+            // Returns a clear() function: a layer that's fading out at a
+            // minzoom/maxzoom boundary just stops rendering rather than firing
+            // "mouseleave", so its hover state/tooltip would otherwise get stuck
+            // showing stale data -- clear() is called from updateLegend() below
+            // whenever the dominant level changes.
+            function wireLevel(level) {
+                let hoveredId = null;
+                const setHover = (id, hover) =>
+                    map.setFeatureState({ source: level.source, sourceLayer: level.sourceLayer, id }, { hover });
+                const clear = () => {
+                    if (hoveredId !== null) setHover(hoveredId, false);
+                    hoveredId = null;
+                };
+
+                if (canHover) {
+                    map.on('mousemove', `${level.id}-fill`, (e) => {
+                        map.getCanvas().style.cursor = 'pointer';
+                        const f = e.features[0];
+
+                        if (hoveredId !== null) setHover(hoveredId, false);
+                        hoveredId = f.id;
+                        setHover(hoveredId, true);
+
+                        const info = level.describe(f.properties);
+                        tooltip.innerHTML = `<div class="name">${info.name}</div><div class="sub">${info.sub}</div>`;
+                        tooltip.style.display = 'block';
+                        tooltip.style.left = (e.point.x + 14) + 'px';
+                        tooltip.style.top = (e.point.y + 14) + 'px';
+                    });
+
+                    map.on('mouseleave', `${level.id}-fill`, () => {
+                        map.getCanvas().style.cursor = '';
+                        clear();
+                        tooltip.style.display = 'none';
+                    });
+                } else {
+                    map.on('click', `${level.id}-fill`, (e) => {
+                        const f = e.features[0];
+
+                        if (hoveredId !== null) setHover(hoveredId, false);
+                        hoveredId = f.id;
+                        setHover(hoveredId, true);
+
+                        const info = level.describe(f.properties);
+                        drawer.querySelector('.name').textContent = info.name;
+                        drawer.querySelector('.sub').innerHTML = info.sub;
+                        drawer.classList.add('open');
+                    });
+                }
+
+                return clear;
+            }
+
+            const clearLevel = Object.fromEntries(LEVELS.map((level) => [level.id, wireLevel(level)]));
+
+            // Hover-tooltip (desktop) or tap-drawer (touch) for CTA line segments.
+            // Bound to the wider casing layer, not the thin colored line, so the
+            // hit target is easier to land on.
+            (function wireCtaLines() {
+                let hoveredId = null;
+                const setHover = (id, hover) => map.setFeatureState({ source: 'cta_lines', id }, { hover });
+                const describe = (p) => ({
+                    name: `${p.line_label} Line`,
+                    sub: `${p.segment_type_label}<br>${Math.round(p.avg_daily_trains).toLocaleString()} avg. daily trains`
+                });
+
+                if (canHover) {
+                    map.on('mousemove', 'cta-lines-casing', (e) => {
+                        map.getCanvas().style.cursor = 'pointer';
+                        const f = e.features[0];
+
+                        if (hoveredId !== null) setHover(hoveredId, false);
+                        hoveredId = f.id;
+                        setHover(hoveredId, true);
+
+                        const info = describe(f.properties);
+                        tooltip.innerHTML = `<div class="name">${info.name}</div><div class="sub">${info.sub}</div>`;
+                        tooltip.style.display = 'block';
+                        tooltip.style.left = (e.point.x + 14) + 'px';
+                        tooltip.style.top = (e.point.y + 14) + 'px';
+                    });
+
+                    map.on('mouseleave', 'cta-lines-casing', () => {
+                        map.getCanvas().style.cursor = '';
+                        if (hoveredId !== null) setHover(hoveredId, false);
+                        hoveredId = null;
+                        tooltip.style.display = 'none';
+                    });
+                } else {
+                    map.on('click', 'cta-lines-casing', (e) => {
+                        const f = e.features[0];
+
+                        if (hoveredId !== null) setHover(hoveredId, false);
+                        hoveredId = f.id;
+                        setHover(hoveredId, true);
+
+                        const info = describe(f.properties);
+                        drawer.querySelector('.name').textContent = info.name;
+                        drawer.querySelector('.sub').innerHTML = info.sub;
+                        drawer.classList.add('open');
+                    });
+                }
+            })();
+
+            drawer.querySelector('.close').addEventListener('click', () => {
+                drawer.classList.remove('open');
+            });
+
+            // Swap the legend's ramp/labels to match whichever level is dominant
+            // at the current zoom, so it always describes what's on screen, and
+            // clear any stale hover state/tooltip left over from the level that
+            // just faded out.
+            let legendLevel = null;
+            function updateLegend() {
+                const z = map.getZoom();
+                const level = z < 8 ? LEVELS[0] : z < 10 ? LEVELS[1] : z < 12 ? LEVELS[2] : LEVELS[3];
+                if (level === legendLevel) return;
+                if (legendLevel) {
+                    clearLevel[legendLevel.id]();
+                    tooltip.style.display = 'none';
+                }
+                legendLevel = level;
+                renderLegend(level);
+            }
+            map.on('zoom', updateLegend);
+            updateLegend();
+        });
+
+        // Draw the legend gradient + scope label for one level's stops.
+        function renderLegend(level) {
+            const ramp = document.querySelector('#legend .ramp');
+            const ticks = document.querySelector('#legend .ticks');
+            const scope = document.querySelector('#legend .scope');
+
+            const min = level.quantiles[0];
+            const max = level.quantiles[level.quantiles.length - 1];
+            const gradientStops = level.quantiles
+                .map((v, i) => `${COLOR_STEPS[i]} ${((v - min) / (max - min)) * 100}%`)
+                .join(', ');
+            ramp.style.background = `linear-gradient(to right, ${gradientStops})`;
+
+            ticks.innerHTML = '';
+            [min, max].forEach((v) => {
+                const span = document.createElement('span');
+                span.textContent = Math.round(v).toLocaleString();
+                ticks.appendChild(span);
+            });
+
+            scope.textContent = level.legendScope;
+        }
+
+        // Zoom-in / zoom-out / compass buttons
+        map.addControl(new maplibregl.NavigationControl(), 'top-right');
+
+        // Add right AFTER your NavigationControl line (outside map.on('load')).
+        // Chicago bounding box, used to keep search results local and to build
+        // the Nominatim viewbox below: [west, south, east, north]
+        const CHICAGO_BBOX = [-87.9401, 41.6445, -87.5241, 42.0230];
+
+        // Nominatim (OpenStreetMap) forward-geocoding adapter -- no API key needed.
+        const chicagoGeocoderApi = {
+            forwardGeocode: async (config) => {
+                const features = [];
+                try {
+                    const viewbox = `${CHICAGO_BBOX[0]},${CHICAGO_BBOX[3]},${CHICAGO_BBOX[2]},${CHICAGO_BBOX[1]}`;
+                    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(config.query)}` +
+                        `&format=geojson&polygon_geojson=0&addressdetails=1&viewbox=${viewbox}&bounded=1`;
+                    const response = await fetch(url);
+                    const geojson = await response.json();
+
+                    for (const feature of geojson.features) {
+                        const center = [
+                            feature.bbox[0] + (feature.bbox[2] - feature.bbox[0]) / 2,
+                            feature.bbox[1] + (feature.bbox[3] - feature.bbox[1]) / 2
+                        ];
+                        features.push({
+                            type: 'Feature',
+                            geometry: { type: 'Point', coordinates: center },
+                            place_name: feature.properties.display_name,
+                            properties: feature.properties,
+                            text: feature.properties.display_name,
+                            place_type: ['place'],
+                            center
+                        });
+                    }
+                } catch (e) {
+                    console.error(`Failed to forwardGeocode with error: ${e}`);
+                }
+                return { features };
+            }
+        };
+
+        const geocoder = new MaplibreGeocoder(chicagoGeocoderApi, {
+            maplibregl: maplibregl,
+            marker: true,
+            placeholder: 'Search your address'
+        });
+        document.getElementById('search').appendChild(geocoder.onAdd(map));
+
+        let searchMarker;
+        geocoder.on('result', (e) => {
+            const center = e.result.center;          // [longitude, latitude]
+            map.flyTo({ center, zoom: 16 });
+            if (searchMarker) searchMarker.remove();
+            searchMarker = new maplibregl.Marker().setLngLat(center).addTo(map);
+        });
+        geocoder.on('clear', () => { if (searchMarker) searchMarker.remove(); });
+    </script>
+</body>
+
+</html>
