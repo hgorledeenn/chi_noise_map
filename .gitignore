@@ -13,11 +13,13 @@ coded_bldgs.geojson
 coded_bldgs_4326.geojsonl
 
 # Intermediate square-grid GeoJSON, regenerable from nb3_buildings_4326.geojsonl with
-# scripts/aggregate_buildings.py + tippecanoe. Only the built chicago_grid_agg.pmtiles
-# is committed.
+# scripts/aggregate_buildings.py + tippecanoe. Only the built grid300/120/45/18.pmtiles
+# (one per cell size -- see index.html's addSource comment for why they're separate
+# files rather than one combined chicago_grid_agg.pmtiles) are committed.
 grid300.geojson
 grid120.geojson
 grid45.geojson
+grid18.geojson
 
 # Source CTA lines data (EPSG:26971). Only the reprojected cta_lines_4326.geojson
 # (built with scripts/prep_cta_lines.py) is committed and served to the map.

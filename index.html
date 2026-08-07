@@ -245,13 +245,14 @@
         // more, smaller color jumps for a more gradual look.
         const COLOR_STEPS = ['#424242', '#4b4d46', '#535949', '#5c654c', '#66714f', '#6f7d52', '#788954', '#829556', '#8ca258', '#95af59', '#9fbc5a', '#a9c95b', '#b4d65b', '#bee45b', '#c8f15a', '#d3ff59'];
 
-        // Four levels of detail, evenly spaced 2 zoom levels apart: three
-        // square-grid averages (300m / 120m / 45m cells, coarsest to finest)
-        // and individual buildings. Each level's minzoom/maxzoom overlaps its
-        // neighbor by a small 0.3-zoom window -- just enough for a quick
-        // crossfade at the handoff instead of an abrupt pop, without a long,
-        // slow blend. The legend thresholds in updateLegend() below (8/10/12)
-        // sit at the midpoint of each handoff. Each level has its own quantile
+        // Five levels of detail, evenly spaced 2 zoom levels apart: four
+        // square-grid averages (300m / 120m / 45m / 18m cells, coarsest to
+        // finest -- 18m is already close to parcel-sized) and individual
+        // buildings. Each level's minzoom/maxzoom overlaps its neighbor by a
+        // small 0.3-zoom window -- just enough for a quick crossfade at the
+        // handoff instead of an abrupt pop, without a long, slow blend. The
+        // legend thresholds in updateLegend() below (8/10/12/14) sit at the
+        // midpoint of each handoff. Each level has its own quantile
         // stops -- see scripts/aggregate_buildings.py / grid_agg_stats.json and
         // scripts/prep_buildings.py / daily_noise_stats.json -- because an
         // average over a grid cell has a narrower spread than raw per-building
@@ -270,7 +271,7 @@
         const LEVELS = [
             {
                 id: 'grid300',
-                source: 'grid_agg',
+                source: 'grid300',
                 sourceLayer: 'grid300',
                 property: 'daily_noise_mean',
                 quantiles: [0.0, 2865.289, 6825.915, 11504.985, 18002.319, 25987.967, 32971.515, 40938.054, 48461.711, 52204.207, 56413.489, 66685.723, 79573.837, 98349.208, 122482.541, 561959.905],
@@ -283,7 +284,7 @@
             },
             {
                 id: 'grid120',
-                source: 'grid_agg',
+                source: 'grid120',
                 sourceLayer: 'grid120',
                 property: 'daily_noise_mean',
                 quantiles: [0.0, 8314.017, 16163.472, 20879.186, 27395.124, 34884.839, 44838.365, 49658.483, 52341.352, 56064.72, 64942.382, 76586.167, 88304.323, 103382.584, 137758.284, 594655.229],
@@ -296,7 +297,7 @@
             },
             {
                 id: 'grid45',
-                source: 'grid_agg',
+                source: 'grid45',
                 sourceLayer: 'grid45',
                 property: 'daily_noise_mean',
                 quantiles: [0.0, 15507.995, 17248.146, 23400.529, 30603.99, 35254.591, 47561.468, 50439.315, 52566.694, 56086.792, 66011.613, 78004.333, 89298.744, 105242.672, 139197.656, 600481.402],
@@ -308,14 +309,27 @@
                 stroke: false
             },
             {
+                id: 'grid18',
+                source: 'grid18',
+                sourceLayer: 'grid18',
+                property: 'daily_noise_mean',
+                quantiles: [0.0, 16093.759, 17362.466, 22170.169, 27521.841, 34783.18, 46748.388, 50104.11, 52290.978, 54597.698, 65032.346, 76013.101, 84257.335, 101691.253, 136998.643, 600481.402],
+                minzoom: 11.85,
+                maxzoom: 14.15,
+                fade: [11.85, 0, 12.15, 0.85, 13.85, 0.85, 14.15, 0],
+                legendScope: 'Parcel-level average · 18 m cells',
+                describe: gridDescribe,
+                stroke: false
+            },
+            {
                 id: 'buildings',
                 source: 'buildings',
                 sourceLayer: 'buildings',
                 property: 'daily_noise',
                 quantiles: [0.0, 16148.718367544234, 17393.47065165248, 21743.196641208004, 26719.382199093205, 34718.936628368334, 46252.21452828782, 49895.50101523852, 52183.72272255321, 54162.91486591312, 64497.21679980325, 74255.74308305912, 82563.94532754555, 100121.74604774364, 136546.4979931388, 600481.4024419838],
-                minzoom: 11.85,
+                minzoom: 13.85,
                 maxzoom: 24,
-                fade: [11.85, 0, 12.15, 0.75],
+                fade: [13.85, 0, 14.15, 0.75],
                 legendScope: 'Individual buildings',
                 describe: (p) => ({
                     name: `${Math.round(p.daily_noise).toLocaleString()} daily noise exposure`,
@@ -351,15 +365,20 @@
                 url: 'pmtiles://coded_bldgs.pmtiles'
             });
 
-            // Three square-grid averages (300m/120m/45m), built with tippecanoe
-            // from scripts/aggregate_buildings.py. promoteId lets the string
-            // "size_row_col" cell id (rather than a numeric tile id) drive hover
-            // feature-state.
-            map.addSource('grid_agg', {
-                type: 'vector',
-                url: 'pmtiles://chicago_grid_agg.pmtiles',
-                promoteId: { grid300: 'cell_id', grid120: 'cell_id', grid45: 'cell_id' }
-            });
+            // Four square-grid averages (300m/120m/45m/18m), built with
+            // tippecanoe from scripts/aggregate_buildings.py -- one pmtiles file
+            // per cell size, each with its own zoom pyramid sized to that cell's
+            // actual density (grid18 alone has 522k cells; cramming it into the
+            // same shallow zoom-8 tile as grid300 -- as a single combined
+            // chicago_grid_agg.pmtiles once did -- forced tippecanoe to quantize
+            // coordinates so coarsely that most 18m cells collapsed on top of
+            // each other, leaving only a handful visible). promoteId lets the
+            // string "size_row_col" cell id (rather than a numeric tile id)
+            // drive hover feature-state.
+            map.addSource('grid300', { type: 'vector', url: 'pmtiles://grid300.pmtiles', promoteId: 'cell_id' });
+            map.addSource('grid120', { type: 'vector', url: 'pmtiles://grid120.pmtiles', promoteId: 'cell_id' });
+            map.addSource('grid45', { type: 'vector', url: 'pmtiles://grid45.pmtiles', promoteId: 'cell_id' });
+            map.addSource('grid18', { type: 'vector', url: 'pmtiles://grid18.pmtiles', promoteId: 'cell_id' });
 
             // One fill + (optional border) + hover-outline trio per level, ordered
             // coarsest to most detailed so buildings paint on top once they fade
@@ -581,7 +600,7 @@
             let legendLevel = null;
             function updateLegend() {
                 const z = map.getZoom();
-                const level = z < 8 ? LEVELS[0] : z < 10 ? LEVELS[1] : z < 12 ? LEVELS[2] : LEVELS[3];
+                const level = z < 8 ? LEVELS[0] : z < 10 ? LEVELS[1] : z < 12 ? LEVELS[2] : z < 14 ? LEVELS[3] : LEVELS[4];
                 if (level === legendLevel) return;
                 if (legendLevel) {
                     clearLevel[legendLevel.id]();

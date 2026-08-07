@@ -1,8 +1,9 @@
 """
 Aggregate the reprojected buildings (nb3_buildings_4326.geojsonl, from
-prep_buildings.py) into square grids at three cell sizes, so the map can show
-a coarse city-wide summary at low zoom, an intermediate level of detail, and
-switch to individual buildings once zoomed in close.
+prep_buildings.py) into square grids at four cell sizes, so the map can show
+a coarse city-wide summary at low zoom, progressively finer intermediate
+levels of detail, and switch to individual buildings only once zoomed in
+close (18m cells, the finest grid, are already close to parcel-sized).
 
 Grid cells are defined directly in lon/lat, sized in meters using a single
 reference latitude for the whole city (Chicago spans <0.4 degrees of
@@ -27,6 +28,7 @@ GRIDS = [
     (300, "grid300.geojson"),
     (120, "grid120.geojson"),
     (45, "grid45.geojson"),
+    (18, "grid18.geojson"),
 ]
 
 
