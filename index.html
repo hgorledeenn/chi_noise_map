@@ -237,13 +237,13 @@
             hash: true          // this hash lets the url contain specific zoom/lat/lon info so that specific views are shareable
         });
 
-        // Single sequential gray->yellow-green ramp (same 16 steps everywhere),
-        // applied to each zoom level's own quantiles below: no measurable noise
-        // is #424242, loudest is #d3ff59, with the 14 steps between interpolated
+        // Single sequential gray->red ramp (same 16 steps everywhere), applied
+        // to each zoom level's own quantiles below: no measurable noise is
+        // #27272a, loudest is #b62b2b, with the 14 steps between interpolated
         // in OKLab (not raw RGB) so the middle of the ramp doesn't muddy out.
-        // 16 steps (rather than the original 9) spreads the transition across
-        // more, smaller color jumps for a more gradual look.
-        const COLOR_STEPS = ['#424242', '#4b4d46', '#535949', '#5c654c', '#66714f', '#6f7d52', '#788954', '#829556', '#8ca258', '#95af59', '#9fbc5a', '#a9c95b', '#b4d65b', '#bee45b', '#c8f15a', '#d3ff59'];
+        // 16 steps (rather than a smaller palette) spreads the transition
+        // across more, smaller color jumps for a more gradual look.
+        const COLOR_STEPS = ['#27272a', '#31292b', '#3a2b2c', '#432c2c', '#4d2d2d', '#562f2d', '#5f2f2e', '#69302e', '#72312e', '#7c312e', '#85312e', '#8f302e', '#98302d', '#a22e2d', '#ac2d2c', '#b62b2b'];
 
         // Five levels of detail, evenly spaced 2 zoom levels apart: four
         // square-grid averages (300m / 120m / 45m / 18m cells, coarsest to
