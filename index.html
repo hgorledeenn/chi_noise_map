@@ -16,6 +16,13 @@
          over HTTP range requests, with no tile server needed. -->
     <script src="https://unpkg.com/pmtiles@3.0.6/dist/pmtiles.js"></script>
 
+    <!-- Geocoder plugin: powers the address search box on the explore map
+         at the bottom of the page. Backed by Nominatim (OpenStreetMap), so
+         no API key is required. -->
+    <link rel="stylesheet" href="https://unpkg.com/@maplibre/maplibre-gl-geocoder@1/dist/maplibre-gl-geocoder.css"
+        type="text/css" />
+    <script src="https://unpkg.com/@maplibre/maplibre-gl-geocoder@1/dist/maplibre-gl-geocoder.js"></script>
+
     <!-- Editorial typefaces, wire-service pairing: Merriweather (a sturdy
          news-serif built for on-screen reading, used for headlines/body/
          dropcaps) and Libre Franklin (a free Franklin Gothic descendant --
@@ -113,10 +120,21 @@
             color: var(--ink-muted);
         }
 
+        /* Every in-article link (byline + running body text, see
+           .story-text a below) shares this: body-text color with an
+           accent-colored underline at rest, and a solid accent-colored
+           highlight behind the text on hover/focus -- text color stays
+           put, only the background lights up. */
         .story-byline a {
             color: var(--ink);
             text-decoration: underline;
             text-decoration-color: var(--accent);
+            transition: background-color .15s ease;
+        }
+
+        .story-byline a:hover,
+        .story-byline a:focus-visible {
+            background-color: var(--accent);
         }
 
         /* ================================================================
@@ -146,6 +164,22 @@
 
         .story-text p {
             margin: 0 0 1.3em;
+        }
+
+        /* Same treatment as the byline link above: body text color, not
+           the browser's default blue, with the accent-colored underline at
+           rest and a solid accent-colored highlight behind the text on
+           hover/focus. */
+        .story-text a {
+            color: var(--ink);
+            text-decoration: underline;
+            text-decoration-color: var(--accent);
+            transition: background-color .15s ease;
+        }
+
+        .story-text a:hover,
+        .story-text a:focus-visible {
+            background-color: var(--accent);
         }
 
         /* A dropped first letter on the lede paragraph -- classic newspaper
@@ -386,11 +420,12 @@
         }
 
         /* ================================================================
-           MAP CHROME -- legend / tooltip / drawer (unchanged from the
-           standalone map, just re-anchored to .scrolly-sticky instead of
-           the full page).
+           MAP CHROME -- legend / tooltip / drawer. Classes, not ids, since
+           both the scrolly map and the free-roam explore map at the bottom
+           of the page (see EXPLORE MAP below) each get their own instance
+           of this chrome but share the same look.
            ================================================================ */
-        #legend {
+        .map-legend {
             position: absolute;
             z-index: 3;
             bottom: 18px;
@@ -405,33 +440,33 @@
             width: 190px;
         }
 
-        #legend h4 {
+        .map-legend h4 {
             margin: 0 0 8px;
             font-size: 11px;
             font-weight: 700;
             color: var(--accent);
         }
 
-        #legend .ramp {
+        .map-legend .ramp {
             height: 12px;
             border-radius: 2px;
             margin-bottom: 4px;
         }
 
-        #legend .ticks {
+        .map-legend .ticks {
             display: flex;
             justify-content: space-between;
             font-size: 9px;
             color: var(--ink-muted);
         }
 
-        #legend .scope {
+        .map-legend .scope {
             font-size: 9px;
             color: var(--ink-muted);
             margin-top: 6px;
         }
 
-        #tooltip {
+        .map-tooltip {
             position: absolute;
             z-index: 3;
             pointer-events: none;
@@ -449,15 +484,15 @@
             color: var(--ink);
         }
 
-        #tooltip .name {
+        .map-tooltip .name {
             font-weight: 700;
         }
 
-        #tooltip .sub {
+        .map-tooltip .sub {
             color: var(--ink-muted);
         }
 
-        #drawer {
+        .map-drawer {
             position: absolute;
             left: 0;
             right: 0;
@@ -473,22 +508,22 @@
             transition: transform .25s ease;
         }
 
-        #drawer.open {
+        .map-drawer.open {
             transform: translateY(0);
         }
 
         /* slides up when open */
-        #drawer .name {
+        .map-drawer .name {
             font-weight: 700;
             font-size: 14px;
         }
 
-        #drawer .sub {
+        .map-drawer .sub {
             color: var(--ink-muted);
             margin-top: 4px;
         }
 
-        #drawer .close {
+        .map-drawer .close {
             position: absolute;
             top: 8px;
             right: 12px;
@@ -499,18 +534,75 @@
             color: var(--ink);
         }
 
+        /* The scrolly map's legend specifically stays hidden until the
+           guided tour actually reveals the noise-data layers (.is-engaged,
+           added the moment the first real step activates -- see goToStep
+           in the script) -- otherwise it'd be labeling data the reader
+           can't see yet during the plain CTA-lines overview. The explore
+           map's legend has no such gating; its data is visible immediately. */
+        #legend {
+            display: none;
+        }
+
+        .scrolly-sticky.is-engaged #legend {
+            display: block;
+        }
+
         /* On narrow screens the step card takes over the bottom of the
            screen (see the earlier @media (max-width: 700px) block), so the
-           bottom-anchored legend needs to move to the top instead. This
-           has to come AFTER the #legend rule above -- same specificity, so
-           source order decides, and a rule inside an unmatched media query
-           earlier in the file would otherwise lose to that later
-           unconditional one. */
+           scrolly map's legend specifically needs to move to the top
+           instead. This has to come AFTER the .map-legend rule above --
+           same specificity, so source order decides, and a rule inside an
+           unmatched media query earlier in the file would otherwise lose
+           to that later unconditional one. */
         @media (max-width: 700px) {
             #legend {
                 top: 12px;
                 bottom: auto;
             }
+        }
+
+        /* ================================================================
+           EXPLORE MAP -- the free-roam, searchable map at the bottom of
+           the page. Full-bleed, fixed height, ordinary (non-sticky)
+           layout -- unlike the scrolly map above, this one doesn't need
+           any scroll-driven behavior, so it's a much simpler block.
+           ================================================================ */
+        .explore-map-wrap {
+            position: relative;
+            height: 85vh;
+            min-height: 480px;
+            overflow: hidden;
+        }
+
+        #explore-map {
+            position: absolute;
+            inset: 0;
+        }
+
+        /* A floating card for the address search box. Left light/white
+           rather than dark-themed to match the geocoder plugin's own
+           default styling (its dropdown suggestions list is unstyled here,
+           and re-skinning a third-party widget's internals for one small
+           control isn't worth the fragility) -- a light search pill
+           floating on a dark map is a common, familiar pattern on its own. */
+        .map-panel {
+            position: absolute;
+            z-index: 5;
+            top: 14px;
+            left: 14px;
+            width: min(320px, calc(100% - 28px));
+            background: #fff;
+            border-radius: 4px;
+            padding: 6px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, .4);
+        }
+
+        .map-panel .maplibregl-ctrl-geocoder {
+            width: 100%;
+            max-width: none;
+            box-shadow: none;
+            font-family: var(--sans-ui);
         }
     </style>
 </head>
@@ -530,8 +622,10 @@
     <section class="story-text story-intro">
         <p class="story-dropcap">Dylan Moring has always wanted to live in a high-rise building. After college, the
             33-year-old spent time living in both Boston and Denver, but it wasn't until he moved to Chicago that his
-            dream could come true. Thanks, in no small part, the Chicago Transity Authority's train system.</p>
-        <p>The CTA system, unlike urban rail networks in nist other major cities runs mostly above ground. </p>
+            dream could come true. Thanks, in no small part, to the Chicago Transit Authority train system.</p>
+        <p>The CTA system, unlike urban rail networks in most other major cities, runs mostly above ground. Only about
+            12% of the system’s 146 stations are underground. In New York City, by comparison, roughly 60% of stations
+            are underground. More than half of Washington D.C.’s Metro stations are underground.</p>
 
         <figure class="story-photo">
             <div class="story-photo-placeholder">
@@ -541,7 +635,41 @@
             <figcaption>A Howard-bound CTA Red Line train stops at the Granville station on October 17, 2022 in Chicago.
                 (Holden Green)</figcaption>
         </figure>
+        <p>There are downsides to the underground systems embraced in New York and DC. Summertime often brings
+            complaints of
+            <a href="https://gothamist.com/news/wet-hot-american-subway-heat-wave-leaves-nyc-riders-sweaty-and-suffocating"
+                target="_blank">oppressive heat</a>, as train AC systems pump hot air out of their cars and into the
+            tunnel.
+            Year round, <a
+                href="https://www.washingtonpost.com/climate-environment/interactive/2025/new-york-subway-flooding-climate-change/"
+                target="_blank">flooding</a>
+            has become an ever-increasing issue as climate change contributes to more frequent and intense storms.
+        </p>
+        <p>One positive effect of putting subway stations underground, though, is that it significantly reduces the
+            sound of the train for people on the surface.</p>
+
+        <p>As the CTA’s train network – or, as it’s better known to Chicagoans, the “L” – travels through the city, it
+            winds its way over city streets and alleyways, above parks and the Chicago River. And, perhaps most notably,
+            it runs within feet in many cases of the second and third floors of apartment and condo buildings.
+        </p>
+        <figure class="story-photo">
+            <div class="story-photo-placeholder">
+                <img src="imgs/3_longexpo_brown.jpg"
+                    alt="A CTA Red Line train waits at an above ground train station on a bright day">
+            </div>
+            <figcaption>A long-exposure photograph of two Brown Line trains curving around a building at 412 N. Wells
+                St. in Chicago’s River North neighborhood on January 2, 2018. (Holden Green)</figcaption>
+        </figure>
+
+        <p>There’s a shared understanding among Chicago residents that the path of the CTA’s trains creates a “train
+            tax” effect: put simply, you can save some money on rent or a mortgage every month if you can put up with
+            the noise from the closely-passing trains.</p>
+
+        <p>For Moring, whose move to Chicago from Denver was motivated largely by a desire to be in a bigger-feeling
+            city, the train tax worked to his benefit.
+        </p>
     </section>
+
 
     <!-- ================================================================
          Do not edit this section's HTML -- it's built from STORY_STEPS in
@@ -553,16 +681,16 @@
         <div class="scrolly-sticky" id="scrolly-sticky">
             <div id="map"></div>
 
-            <div id="legend">
+            <div class="map-legend" id="legend">
                 <h4>Daily train noise exposure</h4>
                 <div class="ramp"></div>
                 <div class="ticks"></div>
                 <div class="scope"></div>
             </div>
 
-            <div id="tooltip"></div>
+            <div class="map-tooltip" id="tooltip"></div>
 
-            <div id="drawer">
+            <div class="map-drawer" id="drawer">
                 <button class="close" aria-label="Close">×</button>
                 <div class="name"></div>
                 <div class="sub"></div>
@@ -595,6 +723,41 @@
 
         <p>EDIT ME: closing paragraph.</p>
     </section>
+
+    <!-- ================================================================
+         EXPLORE MAP -- a plain, fully interactive version of the same map:
+         search any address, or pan/zoom freely. No scroll-driven behavior
+         here, so this markup (unlike the scrolly section above) is static
+         -- edit the heading/paragraph text directly.
+         ================================================================ -->
+    <section class="story-text">
+        <h2>Explore the map yourself</h2>
+        <p>Search any Chicago address below, or pan and zoom freely, to see modeled daily train noise exposure
+            anywhere in the city.</p>
+    </section>
+
+    <div class="explore-map-wrap">
+        <div id="explore-map"></div>
+
+        <div class="map-panel">
+            <div id="explore-search"></div>
+        </div>
+
+        <div class="map-legend" id="explore-legend">
+            <h4>Daily train noise exposure</h4>
+            <div class="ramp"></div>
+            <div class="ticks"></div>
+            <div class="scope"></div>
+        </div>
+
+        <div class="map-tooltip" id="explore-tooltip"></div>
+
+        <div class="map-drawer" id="explore-drawer">
+            <button class="close" aria-label="Close">×</button>
+            <div class="name"></div>
+            <div class="sub"></div>
+        </div>
+    </div>
 
     <!-- ================================================================
          EDIT-FOOTER -- methodology / credits / data-source notes.
@@ -666,6 +829,21 @@
             // tooltips still work: MapLibre dispatches those regardless of
             // this flag, it only turns off the built-in pan/zoom handlers
             // that would otherwise fight with the page's own scrolling.
+        });
+
+        // The free-roam, searchable map at the bottom of the page (see
+        // EXPLORE MAP in <style> and the markup right before <footer>).
+        // Same style/data/color logic as the scrolly map above -- both are
+        // set up by setupMapLayers() further down -- but fully interactive,
+        // with its own address search box, and its view is shareable via
+        // the URL hash since (unlike the scrolly map) nothing else is
+        // driving its camera.
+        const exploreMap = new maplibregl.Map({
+            container: 'explore-map',
+            style: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
+            center: [-87.6298, 41.8781],
+            zoom: 10.5,
+            hash: true
         });
 
         // Single sequential gray->red ramp (same 16 steps everywhere), applied
@@ -794,292 +972,314 @@
             return ids;
         }
 
-        // Wait until the basemap is ready, THEN add our data on top.
-        map.on('load', () => {
-            // The CARTO basemap ships its own generic OSM building
-            // footprints (id "building-top", the visible gray fill; "building"
-            // itself is just a transparent hit-target layer above z15.5) --
-            // drawn independently of our own building/grid data, so at high
-            // zoom you'd see both the basemap's plain OSM footprints AND our
-            // colored noise-data footprints for the same buildings. We only
-            // want ours, so drop the basemap's.
-            map.removeLayer('building-top');
-            map.removeLayer('building');
+        // Adds every source/layer, hover interaction, and legend behavior
+        // this project uses to a single map instance -- shared by the
+        // scrolly map above and the free-roam explore map at the bottom of
+        // the page, which are otherwise identical except for:
+        //   - startHidden: the scrolly map opens on a plain CTA-lines
+        //     overview and reveals the noise-data layers only once the
+        //     guided tour engages (see goToStep, below); the explore map
+        //     just shows everything immediately.
+        //   - legendEl/tooltipEl/drawerEl: each map has its own chrome
+        //     elements (different ids -- #legend vs #explore-legend, etc.)
+        //     so hovering one map never updates the other's tooltip.
+        // Calls onReady({ revealDataLayers }) once everything's added, for
+        // the scrolly-specific step logic that needs to trigger the reveal.
+        function setupMapLayers(mapInstance, { legendEl, tooltipEl, drawerEl, startHidden }, onReady) {
+            mapInstance.on('load', () => {
+                // The CARTO basemap ships its own generic OSM building
+                // footprints (id "building-top", the visible gray fill; "building"
+                // itself is just a transparent hit-target layer above z15.5) --
+                // drawn independently of our own building/grid data, so at high
+                // zoom you'd see both the basemap's plain OSM footprints AND our
+                // colored noise-data footprints for the same buildings. We only
+                // want ours, so drop the basemap's.
+                mapInstance.removeLayer('building-top');
+                mapInstance.removeLayer('building');
 
-            // Individual buildings, built with tippecanoe from
-            // nb3_buildings_coded.geojson (reprojected to lon/lat; see
-            // scripts/prep_buildings.py). Each feature already carries a numeric
-            // top-level id, used for hover feature-state.
-            map.addSource('buildings', {
-                type: 'vector',
-                url: 'pmtiles://coded_bldgs.pmtiles'
-            });
-
-            // Four square-grid averages (300m/120m/45m/18m), built with
-            // tippecanoe from scripts/aggregate_buildings.py -- one pmtiles file
-            // per cell size, each with its own zoom pyramid sized to that cell's
-            // actual density (grid18 alone has 522k cells; cramming it into the
-            // same shallow zoom-8 tile as grid300 -- as a single combined
-            // chicago_grid_agg.pmtiles once did -- forced tippecanoe to quantize
-            // coordinates so coarsely that most 18m cells collapsed on top of
-            // each other, leaving only a handful visible). promoteId lets the
-            // string "size_row_col" cell id (rather than a numeric tile id)
-            // drive hover feature-state.
-            map.addSource('grid300', { type: 'vector', url: 'pmtiles://grid300.pmtiles', promoteId: 'cell_id' });
-            map.addSource('grid120', { type: 'vector', url: 'pmtiles://grid120.pmtiles', promoteId: 'cell_id' });
-            map.addSource('grid45', { type: 'vector', url: 'pmtiles://grid45.pmtiles', promoteId: 'cell_id' });
-            map.addSource('grid18', { type: 'vector', url: 'pmtiles://grid18.pmtiles', promoteId: 'cell_id' });
-
-            // One fill + (optional border) + hover-outline trio per level, ordered
-            // coarsest to most detailed so buildings paint on top once they fade
-            // in. The grid levels skip the border -- at low zoom their square
-            // cell edges read as a distracting grid overlay rather than useful
-            // detail, so only individual buildings keep an outline. All start
-            // hidden (visibility: none): the story opens on a plain CTA-lines
-            // overview, and revealDataLayers() below switches these on once the
-            // reader scrolls into the guided tour.
-            for (const level of LEVELS) {
-                map.addLayer({
-                    id: `${level.id}-fill`,
-                    type: 'fill',
-                    source: level.source,
-                    'source-layer': level.sourceLayer,
-                    minzoom: level.minzoom,
-                    maxzoom: level.maxzoom,
-                    layout: { visibility: 'none' },
-                    paint: {
-                        'fill-color': colorRamp(level),
-                        'fill-opacity': fadeOpacity(level)
-                    }
+                // Individual buildings, built with tippecanoe from
+                // nb3_buildings_coded.geojson (reprojected to lon/lat; see
+                // scripts/prep_buildings.py). Each feature already carries a numeric
+                // top-level id, used for hover feature-state.
+                mapInstance.addSource('buildings', {
+                    type: 'vector',
+                    url: 'pmtiles://coded_bldgs.pmtiles'
                 });
 
-                if (level.stroke !== false) {
-                    map.addLayer({
-                        id: `${level.id}-line`,
+                // Four square-grid averages (300m/120m/45m/18m), built with
+                // tippecanoe from scripts/aggregate_buildings.py -- one pmtiles file
+                // per cell size, each with its own zoom pyramid sized to that cell's
+                // actual density (grid18 alone has 522k cells; cramming it into the
+                // same shallow zoom-8 tile as grid300 -- as a single combined
+                // chicago_grid_agg.pmtiles once did -- forced tippecanoe to quantize
+                // coordinates so coarsely that most 18m cells collapsed on top of
+                // each other, leaving only a handful visible). promoteId lets the
+                // string "size_row_col" cell id (rather than a numeric tile id)
+                // drive hover feature-state.
+                mapInstance.addSource('grid300', { type: 'vector', url: 'pmtiles://grid300.pmtiles', promoteId: 'cell_id' });
+                mapInstance.addSource('grid120', { type: 'vector', url: 'pmtiles://grid120.pmtiles', promoteId: 'cell_id' });
+                mapInstance.addSource('grid45', { type: 'vector', url: 'pmtiles://grid45.pmtiles', promoteId: 'cell_id' });
+                mapInstance.addSource('grid18', { type: 'vector', url: 'pmtiles://grid18.pmtiles', promoteId: 'cell_id' });
+
+                // One fill + (optional border) + hover-outline trio per level, ordered
+                // coarsest to most detailed so buildings paint on top once they fade
+                // in. The grid levels skip the border -- at low zoom their square
+                // cell edges read as a distracting grid overlay rather than useful
+                // detail, so only individual buildings keep an outline. If
+                // startHidden, all start hidden (visibility: none) and
+                // revealDataLayers() below switches them on once the reader
+                // scrolls into the guided tour; otherwise they're visible
+                // immediately.
+                for (const level of LEVELS) {
+                    mapInstance.addLayer({
+                        id: `${level.id}-fill`,
+                        type: 'fill',
+                        source: level.source,
+                        'source-layer': level.sourceLayer,
+                        minzoom: level.minzoom,
+                        maxzoom: level.maxzoom,
+                        layout: { visibility: startHidden ? 'none' : 'visible' },
+                        paint: {
+                            'fill-color': colorRamp(level),
+                            'fill-opacity': fadeOpacity(level)
+                        }
+                    });
+
+                    if (level.stroke !== false) {
+                        mapInstance.addLayer({
+                            id: `${level.id}-line`,
+                            type: 'line',
+                            source: level.source,
+                            'source-layer': level.sourceLayer,
+                            minzoom: level.minzoom,
+                            maxzoom: level.maxzoom,
+                            layout: { visibility: startHidden ? 'none' : 'visible' },
+                            paint: {
+                                'line-color': '#000',
+                                'line-width': 0.2,
+                                'line-opacity': fadeOpacity(level)
+                            }
+                        });
+                    }
+
+                    // A bright outline that appears ONLY on the hovered cell/building.
+                    mapInstance.addLayer({
+                        id: `${level.id}-hover`,
                         type: 'line',
                         source: level.source,
                         'source-layer': level.sourceLayer,
                         minzoom: level.minzoom,
                         maxzoom: level.maxzoom,
-                        layout: { visibility: 'none' },
+                        layout: { visibility: startHidden ? 'none' : 'visible' },
                         paint: {
-                            'line-color': '#000',
-                            'line-width': 0.2,
+                            'line-color': '#ffffff',
+                            'line-width': ['case', ['boolean', ['feature-state', 'hover'], false], 2, 0],
                             'line-opacity': fadeOpacity(level)
                         }
                     });
                 }
 
-                // A bright outline that appears ONLY on the hovered cell/building.
-                map.addLayer({
-                    id: `${level.id}-hover`,
+                let dataLayersRevealed = !startHidden;
+                function revealDataLayers() {
+                    if (dataLayersRevealed) return;
+                    dataLayersRevealed = true;
+                    for (const level of LEVELS) {
+                        for (const id of layerIdsFor(level)) {
+                            mapInstance.setLayoutProperty(id, 'visibility', 'visible');
+                        }
+                    }
+                }
+
+                // CTA train lines, reprojected to lon/lat from nb2_cta_lines_updated.geojson
+                // (see scripts/prep_cta_lines.py). Only 23 short segments, so this is
+                // served as a plain GeoJSON source rather than tiled like the buildings/
+                // grids -- and added last, after every LEVELS layer above, so it always
+                // paints on top of them regardless of zoom. generateId assigns each
+                // feature a numeric id for hover feature-state (there's no natural
+                // unique id in the source data to promote). Visible from the very
+                // start regardless of startHidden -- on the scrolly map, this is the
+                // only layer shown during the opening overview.
+                mapInstance.addSource('cta_lines', {
+                    type: 'geojson',
+                    data: 'cta_lines_4326.geojson',
+                    generateId: true
+                });
+
+                // A dark casing under the colored line, wider than it, so the line
+                // reads clearly against both the light-green and dark-blue ends of
+                // the building color ramp.
+                mapInstance.addLayer({
+                    id: 'cta-lines-casing',
                     type: 'line',
-                    source: level.source,
-                    'source-layer': level.sourceLayer,
-                    minzoom: level.minzoom,
-                    maxzoom: level.maxzoom,
-                    layout: { visibility: 'none' },
+                    source: 'cta_lines',
+                    paint: {
+                        'line-color': '#0b1a33',
+                        'line-width': ['interpolate', ['linear'], ['zoom'], 8, 2.5, 16, 6],
+                        'line-opacity': 0.9
+                    }
+                });
+                mapInstance.addLayer({
+                    id: 'cta-lines-fill',
+                    type: 'line',
+                    source: 'cta_lines',
+                    paint: {
+                        'line-color': '#e8302a',
+                        'line-width': ['interpolate', ['linear'], ['zoom'], 8, 1.2, 16, 3.5]
+                    }
+                });
+                // A bright outline that appears ONLY on the hovered segment.
+                mapInstance.addLayer({
+                    id: 'cta-lines-hover',
+                    type: 'line',
+                    source: 'cta_lines',
                     paint: {
                         'line-color': '#ffffff',
-                        'line-width': ['case', ['boolean', ['feature-state', 'hover'], false], 2, 0],
-                        'line-opacity': fadeOpacity(level)
+                        'line-width': ['case', ['boolean', ['feature-state', 'hover'], false], 8, 0],
+                        'line-opacity': 0.5
                     }
                 });
-            }
 
-            let dataLayersRevealed = false;
-            function revealDataLayers() {
-                if (dataLayersRevealed) return;
-                dataLayersRevealed = true;
-                for (const level of LEVELS) {
-                    for (const id of layerIdsFor(level)) {
-                        map.setLayoutProperty(id, 'visibility', 'visible');
-                    }
-                }
-            }
+                // Only devices with a real mouse get hover behavior (desktops/laptops).
+                const canHover = window.matchMedia('(hover: hover)').matches;
 
-            // CTA train lines, reprojected to lon/lat from nb2_cta_lines_updated.geojson
-            // (see scripts/prep_cta_lines.py). Only 23 short segments, so this is
-            // served as a plain GeoJSON source rather than tiled like the buildings/
-            // grids -- and added last, after every LEVELS layer above, so it always
-            // paints on top of them regardless of zoom. generateId assigns each
-            // feature a numeric id for hover feature-state (there's no natural
-            // unique id in the source data to promote). Visible from the very
-            // start -- this is the only layer shown during the opening overview.
-            map.addSource('cta_lines', {
-                type: 'geojson',
-                data: 'cta_lines_4326.geojson',
-                generateId: true
-            });
-
-            // A dark casing under the colored line, wider than it, so the line
-            // reads clearly against both the light-green and dark-blue ends of
-            // the building color ramp.
-            map.addLayer({
-                id: 'cta-lines-casing',
-                type: 'line',
-                source: 'cta_lines',
-                paint: {
-                    'line-color': '#0b1a33',
-                    'line-width': ['interpolate', ['linear'], ['zoom'], 8, 2.5, 16, 6],
-                    'line-opacity': 0.9
-                }
-            });
-            map.addLayer({
-                id: 'cta-lines-fill',
-                type: 'line',
-                source: 'cta_lines',
-                paint: {
-                    'line-color': '#e8302a',
-                    'line-width': ['interpolate', ['linear'], ['zoom'], 8, 1.2, 16, 3.5]
-                }
-            });
-            // A bright outline that appears ONLY on the hovered segment.
-            map.addLayer({
-                id: 'cta-lines-hover',
-                type: 'line',
-                source: 'cta_lines',
-                paint: {
-                    'line-color': '#ffffff',
-                    'line-width': ['case', ['boolean', ['feature-state', 'hover'], false], 8, 0],
-                    'line-opacity': 0.5
-                }
-            });
-
-            const tooltip = document.getElementById('tooltip');
-            const drawer = document.getElementById('drawer');
-
-            // Only devices with a real mouse get hover behavior (desktops/laptops).
-            const canHover = window.matchMedia('(hover: hover)').matches;
-
-            // Wire up hover-tooltip (desktop) or tap-drawer (touch) for one level.
-            // Returns a clear() function: a layer that's fading out at a
-            // minzoom/maxzoom boundary just stops rendering rather than firing
-            // "mouseleave", so its hover state/tooltip would otherwise get stuck
-            // showing stale data -- clear() is called from updateLegend() below
-            // whenever the dominant level changes.
-            function wireLevel(level) {
-                let hoveredId = null;
-                const setHover = (id, hover) =>
-                    map.setFeatureState({ source: level.source, sourceLayer: level.sourceLayer, id }, { hover });
-                const clear = () => {
-                    if (hoveredId !== null) setHover(hoveredId, false);
-                    hoveredId = null;
-                };
-
-                if (canHover) {
-                    map.on('mousemove', `${level.id}-fill`, (e) => {
-                        map.getCanvas().style.cursor = 'pointer';
-                        const f = e.features[0];
-
-                        if (hoveredId !== null) setHover(hoveredId, false);
-                        hoveredId = f.id;
-                        setHover(hoveredId, true);
-
-                        const info = level.describe(f.properties);
-                        tooltip.innerHTML = `<div class="name">${info.name}</div><div class="sub">${info.sub}</div>`;
-                        tooltip.style.display = 'block';
-                        tooltip.style.left = (e.point.x + 14) + 'px';
-                        tooltip.style.top = (e.point.y + 14) + 'px';
-                    });
-
-                    map.on('mouseleave', `${level.id}-fill`, () => {
-                        map.getCanvas().style.cursor = '';
-                        clear();
-                        tooltip.style.display = 'none';
-                    });
-                } else {
-                    map.on('click', `${level.id}-fill`, (e) => {
-                        const f = e.features[0];
-
-                        if (hoveredId !== null) setHover(hoveredId, false);
-                        hoveredId = f.id;
-                        setHover(hoveredId, true);
-
-                        const info = level.describe(f.properties);
-                        drawer.querySelector('.name').textContent = info.name;
-                        drawer.querySelector('.sub').innerHTML = info.sub;
-                        drawer.classList.add('open');
-                    });
-                }
-
-                return clear;
-            }
-
-            const clearLevel = Object.fromEntries(LEVELS.map((level) => [level.id, wireLevel(level)]));
-
-            // Hover-tooltip (desktop) or tap-drawer (touch) for CTA line segments.
-            // Bound to the wider casing layer, not the thin colored line, so the
-            // hit target is easier to land on.
-            (function wireCtaLines() {
-                let hoveredId = null;
-                const setHover = (id, hover) => map.setFeatureState({ source: 'cta_lines', id }, { hover });
-                const describe = (p) => ({
-                    name: `${p.line_label} Line`,
-                    sub: `${p.segment_type_label}<br>${Math.round(p.avg_daily_trains).toLocaleString()} avg. daily trains`
-                });
-
-                if (canHover) {
-                    map.on('mousemove', 'cta-lines-casing', (e) => {
-                        map.getCanvas().style.cursor = 'pointer';
-                        const f = e.features[0];
-
-                        if (hoveredId !== null) setHover(hoveredId, false);
-                        hoveredId = f.id;
-                        setHover(hoveredId, true);
-
-                        const info = describe(f.properties);
-                        tooltip.innerHTML = `<div class="name">${info.name}</div><div class="sub">${info.sub}</div>`;
-                        tooltip.style.display = 'block';
-                        tooltip.style.left = (e.point.x + 14) + 'px';
-                        tooltip.style.top = (e.point.y + 14) + 'px';
-                    });
-
-                    map.on('mouseleave', 'cta-lines-casing', () => {
-                        map.getCanvas().style.cursor = '';
+                // Wire up hover-tooltip (desktop) or tap-drawer (touch) for one level.
+                // Returns a clear() function: a layer that's fading out at a
+                // minzoom/maxzoom boundary just stops rendering rather than firing
+                // "mouseleave", so its hover state/tooltip would otherwise get stuck
+                // showing stale data -- clear() is called from updateLegend() below
+                // whenever the dominant level changes.
+                function wireLevel(level) {
+                    let hoveredId = null;
+                    const setHover = (id, hover) =>
+                        mapInstance.setFeatureState({ source: level.source, sourceLayer: level.sourceLayer, id }, { hover });
+                    const clear = () => {
                         if (hoveredId !== null) setHover(hoveredId, false);
                         hoveredId = null;
-                        tooltip.style.display = 'none';
-                    });
-                } else {
-                    map.on('click', 'cta-lines-casing', (e) => {
-                        const f = e.features[0];
+                    };
 
-                        if (hoveredId !== null) setHover(hoveredId, false);
-                        hoveredId = f.id;
-                        setHover(hoveredId, true);
+                    if (canHover) {
+                        mapInstance.on('mousemove', `${level.id}-fill`, (e) => {
+                            mapInstance.getCanvas().style.cursor = 'pointer';
+                            const f = e.features[0];
 
-                        const info = describe(f.properties);
-                        drawer.querySelector('.name').textContent = info.name;
-                        drawer.querySelector('.sub').innerHTML = info.sub;
-                        drawer.classList.add('open');
-                    });
+                            if (hoveredId !== null) setHover(hoveredId, false);
+                            hoveredId = f.id;
+                            setHover(hoveredId, true);
+
+                            const info = level.describe(f.properties);
+                            tooltipEl.innerHTML = `<div class="name">${info.name}</div><div class="sub">${info.sub}</div>`;
+                            tooltipEl.style.display = 'block';
+                            tooltipEl.style.left = (e.point.x + 14) + 'px';
+                            tooltipEl.style.top = (e.point.y + 14) + 'px';
+                        });
+
+                        mapInstance.on('mouseleave', `${level.id}-fill`, () => {
+                            mapInstance.getCanvas().style.cursor = '';
+                            clear();
+                            tooltipEl.style.display = 'none';
+                        });
+                    } else {
+                        mapInstance.on('click', `${level.id}-fill`, (e) => {
+                            const f = e.features[0];
+
+                            if (hoveredId !== null) setHover(hoveredId, false);
+                            hoveredId = f.id;
+                            setHover(hoveredId, true);
+
+                            const info = level.describe(f.properties);
+                            drawerEl.querySelector('.name').textContent = info.name;
+                            drawerEl.querySelector('.sub').innerHTML = info.sub;
+                            drawerEl.classList.add('open');
+                        });
+                    }
+
+                    return clear;
                 }
-            })();
 
-            drawer.querySelector('.close').addEventListener('click', () => {
-                drawer.classList.remove('open');
+                const clearLevel = Object.fromEntries(LEVELS.map((level) => [level.id, wireLevel(level)]));
+
+                // Hover-tooltip (desktop) or tap-drawer (touch) for CTA line segments.
+                // Bound to the wider casing layer, not the thin colored line, so the
+                // hit target is easier to land on.
+                (function wireCtaLines() {
+                    let hoveredId = null;
+                    const setHover = (id, hover) => mapInstance.setFeatureState({ source: 'cta_lines', id }, { hover });
+                    const describe = (p) => ({
+                        name: `${p.line_label} Line`,
+                        sub: `${p.segment_type_label}<br>${Math.round(p.avg_daily_trains).toLocaleString()} avg. daily trains`
+                    });
+
+                    if (canHover) {
+                        mapInstance.on('mousemove', 'cta-lines-casing', (e) => {
+                            mapInstance.getCanvas().style.cursor = 'pointer';
+                            const f = e.features[0];
+
+                            if (hoveredId !== null) setHover(hoveredId, false);
+                            hoveredId = f.id;
+                            setHover(hoveredId, true);
+
+                            const info = describe(f.properties);
+                            tooltipEl.innerHTML = `<div class="name">${info.name}</div><div class="sub">${info.sub}</div>`;
+                            tooltipEl.style.display = 'block';
+                            tooltipEl.style.left = (e.point.x + 14) + 'px';
+                            tooltipEl.style.top = (e.point.y + 14) + 'px';
+                        });
+
+                        mapInstance.on('mouseleave', 'cta-lines-casing', () => {
+                            mapInstance.getCanvas().style.cursor = '';
+                            if (hoveredId !== null) setHover(hoveredId, false);
+                            hoveredId = null;
+                            tooltipEl.style.display = 'none';
+                        });
+                    } else {
+                        mapInstance.on('click', 'cta-lines-casing', (e) => {
+                            const f = e.features[0];
+
+                            if (hoveredId !== null) setHover(hoveredId, false);
+                            hoveredId = f.id;
+                            setHover(hoveredId, true);
+
+                            const info = describe(f.properties);
+                            drawerEl.querySelector('.name').textContent = info.name;
+                            drawerEl.querySelector('.sub').innerHTML = info.sub;
+                            drawerEl.classList.add('open');
+                        });
+                    }
+                })();
+
+                drawerEl.querySelector('.close').addEventListener('click', () => {
+                    drawerEl.classList.remove('open');
+                });
+
+                // Swap the legend's ramp/labels to match whichever level is dominant
+                // at the current zoom, so it always describes what's on screen, and
+                // clear any stale hover state/tooltip left over from the level that
+                // just faded out.
+                let legendLevel = null;
+                function updateLegend() {
+                    const z = mapInstance.getZoom();
+                    const level = z < 8 ? LEVELS[0] : z < 10 ? LEVELS[1] : z < 12 ? LEVELS[2] : z < 14 ? LEVELS[3] : LEVELS[4];
+                    if (level === legendLevel) return;
+                    if (legendLevel) {
+                        clearLevel[legendLevel.id]();
+                        tooltipEl.style.display = 'none';
+                    }
+                    legendLevel = level;
+                    renderLegend(level, legendEl);
+                }
+                mapInstance.on('zoom', updateLegend);
+                updateLegend();
+
+                if (onReady) onReady({ revealDataLayers });
             });
+        }
 
-            // Swap the legend's ramp/labels to match whichever level is dominant
-            // at the current zoom, so it always describes what's on screen, and
-            // clear any stale hover state/tooltip left over from the level that
-            // just faded out.
-            let legendLevel = null;
-            function updateLegend() {
-                const z = map.getZoom();
-                const level = z < 8 ? LEVELS[0] : z < 10 ? LEVELS[1] : z < 12 ? LEVELS[2] : z < 14 ? LEVELS[3] : LEVELS[4];
-                if (level === legendLevel) return;
-                if (legendLevel) {
-                    clearLevel[legendLevel.id]();
-                    tooltip.style.display = 'none';
-                }
-                legendLevel = level;
-                renderLegend(level);
-            }
-            map.on('zoom', updateLegend);
-            updateLegend();
-
+        setupMapLayers(map, {
+            legendEl: document.getElementById('legend'),
+            tooltipEl: document.getElementById('tooltip'),
+            drawerEl: document.getElementById('drawer'),
+            startHidden: true
+        }, ({ revealDataLayers }) => {
             // ========================================================
             // SCROLLYTELLING -- render STORY_STEPS into .scrolly-steps,
             // then watch each one with IntersectionObserver so the map
@@ -1135,11 +1335,80 @@
             stepEls.forEach((el) => stepObserver.observe(el));
         });
 
-        // Draw the legend gradient + scope label for one level's stops.
-        function renderLegend(level) {
-            const ramp = document.querySelector('#legend .ramp');
-            const ticks = document.querySelector('#legend .ticks');
-            const scope = document.querySelector('#legend .scope');
+        setupMapLayers(exploreMap, {
+            legendEl: document.getElementById('explore-legend'),
+            tooltipEl: document.getElementById('explore-tooltip'),
+            drawerEl: document.getElementById('explore-drawer'),
+            startHidden: false
+        });
+
+        // Zoom-in/zoom-out/compass buttons and the address search box --
+        // only the explore map is meant for free-form poking around, so
+        // only it gets these (the scrolly map is driven entirely by
+        // STORY_STEPS above).
+        (function attachExploreControls() {
+            exploreMap.addControl(new maplibregl.NavigationControl(), 'top-right');
+
+            // Keeps search results local to Chicago and builds the
+            // Nominatim viewbox below: [west, south, east, north].
+            const CHICAGO_BBOX = [-87.9401, 41.6445, -87.5241, 42.0230];
+
+            // Nominatim (OpenStreetMap) forward-geocoding adapter -- no API key needed.
+            const chicagoGeocoderApi = {
+                forwardGeocode: async (config) => {
+                    const features = [];
+                    try {
+                        const viewbox = `${CHICAGO_BBOX[0]},${CHICAGO_BBOX[3]},${CHICAGO_BBOX[2]},${CHICAGO_BBOX[1]}`;
+                        const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(config.query)}` +
+                            `&format=geojson&polygon_geojson=0&addressdetails=1&viewbox=${viewbox}&bounded=1`;
+                        const response = await fetch(url);
+                        const geojson = await response.json();
+
+                        for (const feature of geojson.features) {
+                            const center = [
+                                feature.bbox[0] + (feature.bbox[2] - feature.bbox[0]) / 2,
+                                feature.bbox[1] + (feature.bbox[3] - feature.bbox[1]) / 2
+                            ];
+                            features.push({
+                                type: 'Feature',
+                                geometry: { type: 'Point', coordinates: center },
+                                place_name: feature.properties.display_name,
+                                properties: feature.properties,
+                                text: feature.properties.display_name,
+                                place_type: ['place'],
+                                center
+                            });
+                        }
+                    } catch (e) {
+                        console.error(`Failed to forwardGeocode with error: ${e}`);
+                    }
+                    return { features };
+                }
+            };
+
+            const geocoder = new MaplibreGeocoder(chicagoGeocoderApi, {
+                maplibregl: maplibregl,
+                marker: true,
+                placeholder: 'Search your address'
+            });
+            document.getElementById('explore-search').appendChild(geocoder.onAdd(exploreMap));
+
+            let searchMarker;
+            geocoder.on('result', (e) => {
+                const center = e.result.center;          // [longitude, latitude]
+                exploreMap.flyTo({ center, zoom: 16 });
+                if (searchMarker) searchMarker.remove();
+                searchMarker = new maplibregl.Marker().setLngLat(center).addTo(exploreMap);
+            });
+            geocoder.on('clear', () => { if (searchMarker) searchMarker.remove(); });
+        })();
+
+        // Draw the legend gradient + scope label for one level's stops, in
+        // a given map's legend element.
+        function renderLegend(level, legendEl) {
+            const ramp = legendEl.querySelector('.ramp');
+            const ticks = legendEl.querySelector('.ticks');
+            const scope = legendEl.querySelector('.scope');
 
             const min = level.quantiles[0];
             const max = level.quantiles[level.quantiles.length - 1];
