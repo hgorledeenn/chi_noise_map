@@ -353,8 +353,51 @@
             color: var(--ink-muted);
         }
 
-        /* "Scroll to explore" cue -- shown only until the first step
-           activates (see JS: .scrolly-sticky gets .is-engaged then). */
+        /* Step 5's card (see STORY_STEPS' card: 'image') -- same shell as
+           .step-card, just wider to give the photo room, with the image in
+           its own 4:3 frame instead of a paragraph. */
+        .step-card-image {
+            max-width: 460px;
+        }
+
+        .step-card-photo {
+            width: 100%;
+            aspect-ratio: 4 / 3;
+            background: repeating-linear-gradient(45deg, #1c1b18, #1c1b18 10px, #232220 10px, #232220 20px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            margin: 4px 0 10px;
+        }
+
+        .step-card-photo img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        .step-card-photo-placeholder {
+            font-family: var(--sans-ui);
+            font-size: 12px;
+            color: var(--ink-muted);
+            text-align: center;
+            padding: 1em;
+        }
+
+        .step-card-caption {
+            font-family: var(--sans-ui);
+            font-size: 0.8rem;
+            line-height: 1.4;
+            color: var(--ink-muted);
+            margin: 0;
+        }
+
+        /* "Scroll to explore" cue -- shown only while step 1 (the opening
+           overview) is the active step; goToStep toggles .is-engaged on
+           .scrolly-sticky for every OTHER step, and removes it again if the
+           reader scrolls back up to step 1, so the cue can reappear too. */
         .scroll-cue {
             position: absolute;
             left: 50%;
@@ -374,19 +417,6 @@
             opacity: 0.9;
             transition: opacity .4s ease;
             animation: scroll-cue-bob 1.6s ease-in-out infinite;
-        }
-
-        /* The legend describes the noise-data layers, so it stays hidden
-           until those layers are actually revealed (.is-engaged, added the
-           moment the first real step activates -- see goToStep in the
-           script). Otherwise it'd be labeling data the reader can't see
-           yet during the plain CTA-lines overview. */
-        #legend {
-            display: none;
-        }
-
-        .scrolly-sticky.is-engaged #legend {
-            display: block;
         }
 
         .scrolly-sticky.is-engaged .scroll-cue {
@@ -466,6 +496,48 @@
             margin-top: 6px;
         }
 
+        /* A single color-swatch + label row -- the CTA-rail key on both
+           maps (see markup: a standalone .map-legend on the scrolly map,
+           an extra row appended to the existing one on the explore map). */
+        .legend-key-row {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+        }
+
+        .legend-key-swatch {
+            display: inline-block;
+            width: 16px;
+            height: 3px;
+            border-radius: 1px;
+            flex-shrink: 0;
+        }
+
+        #explore-legend .legend-key-row {
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px solid var(--paper-rule);
+        }
+
+        /* The scrolly map's version has no ramp/ticks/scope, just this one
+           row, so it doesn't need the full legend's fixed 190px width. */
+        .map-legend-mini {
+            width: auto;
+        }
+
+        /* On narrow screens the step card takes over the bottom of the
+           screen (see the @media (max-width: 700px) block further up), so
+           the scrolly map's mini legend moves to the top instead -- same
+           reasoning as the old per-level legend once did. This has to come
+           AFTER the unconditional .map-legend rule above (source order,
+           equal specificity) or the earlier media query would lose. */
+        @media (max-width: 700px) {
+            .map-legend-mini {
+                top: 12px;
+                bottom: auto;
+            }
+        }
+
         .map-tooltip {
             position: absolute;
             z-index: 3;
@@ -534,34 +606,6 @@
             color: var(--ink);
         }
 
-        /* The scrolly map's legend specifically stays hidden until the
-           guided tour actually reveals the noise-data layers (.is-engaged,
-           added the moment the first real step activates -- see goToStep
-           in the script) -- otherwise it'd be labeling data the reader
-           can't see yet during the plain CTA-lines overview. The explore
-           map's legend has no such gating; its data is visible immediately. */
-        #legend {
-            display: none;
-        }
-
-        .scrolly-sticky.is-engaged #legend {
-            display: block;
-        }
-
-        /* On narrow screens the step card takes over the bottom of the
-           screen (see the earlier @media (max-width: 700px) block), so the
-           scrolly map's legend specifically needs to move to the top
-           instead. This has to come AFTER the .map-legend rule above --
-           same specificity, so source order decides, and a rule inside an
-           unmatched media query earlier in the file would otherwise lose
-           to that later unconditional one. */
-        @media (max-width: 700px) {
-            #legend {
-                top: 12px;
-                bottom: auto;
-            }
-        }
-
         /* ================================================================
            EXPLORE MAP -- the free-roam, searchable map at the bottom of
            the page. Full-bleed, fixed height, ordinary (non-sticky)
@@ -621,11 +665,19 @@
 
     <section class="story-text story-intro">
         <p class="story-dropcap">Dylan Moring has always wanted to live in a high-rise building. After college, the
-            33-year-old spent time living in both Boston and Denver, but it wasn't until he moved to Chicago that his
-            dream could come true. Thanks, in no small part, to the Chicago Transit Authority train system.</p>
-        <p>The CTA system, unlike urban rail networks in most other major cities, runs mostly above ground. Only about
-            12% of the system’s 146 stations are underground. In New York City, by comparison, roughly 60% of stations
-            are underground. More than half of Washington D.C.’s Metro stations are underground.</p>
+            33-year-old spent time in both Boston and Denver, but it wasn't until he moved to Chicago that his dream
+            could come true. Thanks, in no small part, to the Chicago Transit Authority train system.</p>
+
+        <p>Chicago’s urban rail network – known to Chicagoans as the “L” – is made up of eight distinct lines serves
+            nearly half a million riders every week day. The L follows a “hub-and-spoke” model, meaning that most of its
+            lines start outside the downtown and bring riders to the central business district. When the train lines
+            meet in the city’s center, they follow a circular path around the downtown, which many residents call the
+            “Loop”.</p>
+
+        <p>Unlike urban rail networks in most other major cities, the Chicago L runs mostly above ground. Only about 12%
+            of the system’s 146 stations are underground. In New York City and Washington D.C., by comparison, more than
+            half the stations are underground.</p>
+
 
         <figure class="story-photo">
             <div class="story-photo-placeholder">
@@ -648,10 +700,10 @@
         <p>One positive effect of putting subway stations underground, though, is that it significantly reduces the
             sound of the train for people on the surface.</p>
 
-        <p>As the CTA’s train network – or, as it’s better known to Chicagoans, the “L” – travels through the city, it
-            winds its way over city streets and alleyways, above parks and the Chicago River. And, perhaps most notably,
-            it runs within feet in many cases of the second and third floors of apartment and condo buildings.
-        </p>
+        <p>As Chicago’s L travels through the city, it winds its way over city streets and alleyways, above parks and
+            the Chicago River. And, all along its journey, it runs as close a few feet from the second and third floors
+            of residential buildings.</p>
+
         <figure class="story-photo">
             <div class="story-photo-placeholder">
                 <img src="imgs/3_longexpo_brown.jpg"
@@ -674,40 +726,30 @@
     <!-- ================================================================
          Do not edit this section's HTML -- it's built from STORY_STEPS in
          the script below. To change the tour, edit that array: add/remove
-         objects, or change each one's center/zoom/title/text. See
-         EDIT-STEPS further down.
+         objects, or change each one's center/zoom/title/text/card/highlight.
+         See EDIT-STEPS further down. No legend/tooltip/drawer here -- this
+         map is a guided, non-interactive visual (search + hover live on the
+         explore map at the bottom of the page instead).
          ================================================================ -->
     <section class="scrolly" id="scrolly">
         <div class="scrolly-sticky" id="scrolly-sticky">
             <div id="map"></div>
 
-            <div class="map-legend" id="legend">
-                <h4>Daily train noise exposure</h4>
-                <div class="ramp"></div>
-                <div class="ticks"></div>
-                <div class="scope"></div>
-            </div>
-
-            <div class="map-tooltip" id="tooltip"></div>
-
-            <div class="map-drawer" id="drawer">
-                <button class="close" aria-label="Close">×</button>
-                <div class="name"></div>
-                <div class="sub"></div>
+            <div class="map-legend map-legend-mini">
+                <div class="legend-key-row">
+                    <span class="legend-key-swatch" style="background:#e8302a"></span>
+                    <span>CTA rail system</span>
+                </div>
             </div>
 
             <div class="scroll-cue">Scroll to explore ▾</div>
         </div>
 
-        <div class="scrolly-steps" id="scrolly-steps">
-            <!-- This first block is deliberate scroll room: it holds no step
-                 card, so the map sits on the plain CTA-lines overview (no
-                 noise data, no flyTo) for one full screen before the guided
-                 tour -- built from STORY_STEPS below -- takes over. Delete
-                 it if you'd rather the tour start immediately. -->
-            <div class="step step-lead-in"></div>
-            <!-- STORY_STEPS-generated step cards are appended here by JS. -->
-        </div>
+        <!-- One .step per STORY_STEPS entry, generated by JS -- step 1 (the
+             opening city-wide overview) is entry 0, so scrolling back up to
+             it re-triggers goToStep(0) and flies back out, the same as
+             landing on any other step. -->
+        <div class="scrolly-steps" id="scrolly-steps"></div>
     </section>
 
     <!-- ================================================================
@@ -718,10 +760,36 @@
          ================================================================ -->
     <section class="story-text story-outro">
         <h2>EDIT ME: A section header</h2>
-        <p>EDIT ME: paragraph continuing the story after the map tour -- what the five stops added up to, a
-            resident's account, policy context, whatever comes next.</p>
+        <p>The sound from the train can reach about 85 decibels in Moring’s apartment when the windows are open. That’s about equivalent to a food blender or a leaf blower being used nearby.</p>
 
-        <p>EDIT ME: closing paragraph.</p>
+        <p>When the windows are closed, that sound can drop as low as 60dB – closer to a normal conversational speaking volume, but still noticeable.</p>
+
+        <p>Now that he is used to it, though, Moring doesn’t mind the sound as much.</p>
+
+        <p>“It definitely took a little bit of adjustment, especially at night,” Moring said. “But I think we got used to it pretty quick.”</p>
+
+        <p>He thinks his adaptability to the noise has translated into direct savings on an otherwise great apartment.</p>
+
+        <p>“It felt kind of like a market discrepancy that we could take advantage of,” Moring said. “A lot of other buildings built in the same period of time that have three bedroom units are priced at least $1,000 a month more.”</p>
+
+        <p>TKTK Sentence or two here abt the citywide train tax/distance once I have that figured out from my regression model TKTK</p>
+
+        <p>While Moring isn’t alone in his noise tolerance; there are others who set a slightly further minimum distance for how close to the train they’re willing to live.</p>
+
+        <p>When Natalie Trumbo moved to Chicago in 2015, she was excited to take advantage of the accessibility offered by living near the L. A transplant from upstate New York, Trumbo’s first apartment maximized this: she was in a ground floor unit that directly backed onto the Red line’s Bryn Mawr station.</p>
+
+        <p>“It was super convenient to walk out of the alley and get on the train,” Trumbo said. “So that was a positive. But I only did it for a year.”</p>
+
+        <p>While she reached some level of comfort with the noise for herself, she decided she would sacrifice some of the accessibility in order to reduce the noise from the train she was experiencing in her next home. Plus, Trumbo, 43, and her husband had other priorities.</p>
+
+        <p>They now have three kids all under seven-years-old, and Trumbo commutes to the northern suburbs for her work, not into the Loop. It’s far more convenient, she explained, to just take their minivan around the city when they need to, and to not have to worry about bringing her young kids and their strollers onto the train.</p>
+
+        <p>Despite this, she said it’s still important to her that her children grow up experiencing the city and feeling comfortable on public transportation.</p>
+
+        <p>“I don’t want them to be afraid of it,” Trumbo said, “and I want them to be familiar with it and feel comfortable with it.”</p>
+
+        <p>After Trumbo and her husband had their third child, they decided to upsize from their current 2-bedroom condo on the 1500 block of W. Walton. Still on their list of priorities in the home search was transit accessibility, but Trumbo was no longer looking for a unit as close as her first Chicago apartment.</p>
+
     </section>
 
     <!-- ================================================================
@@ -748,6 +816,10 @@
             <div class="ramp"></div>
             <div class="ticks"></div>
             <div class="scope"></div>
+            <div class="legend-key-row">
+                <span class="legend-key-swatch" style="background:#e8302a"></span>
+                <span>CTA rail system</span>
+            </div>
         </div>
 
         <div class="map-tooltip" id="explore-tooltip"></div>
@@ -770,47 +842,82 @@
     <script>
         // ============================================================
         // EDIT-STEPS -- the guided tour. Each stop needs a map center
-        // ([longitude, latitude]), a zoom level, and the title/text shown
-        // in its step card. Add, remove, or reorder objects freely; the
-        // step cards and the map flyTo calls are both generated from this
-        // array, so nothing else needs to change.
-        //
-        // The 5 stops below are placeholders near real CTA lines, just to
-        // prove out the mechanism -- swap in your real ones whenever
-        // you're ready.
+        // ([longitude, latitude]) and zoom, plus:
+        //   - card: 'none' (no step card at all -- just the map),
+        //     'text' (title + paragraph), or 'image' (photo + caption).
+        //   - highlight: null, 'building' (spotlights the one building at
+        //     SPOTLIGHT_BUILDING_ID, everything else stays gray), or
+        //     'lines' (spotlights every CTA line segment).
+        // Steps 3-5 deliberately repeat the same center/zoom as step 2 --
+        // the camera holds still while the highlight changes underneath it.
         // ============================================================
         const STORY_STEPS = [
             {
-                center: [-87.6278, 41.8839],
-                zoom: 16,
-                title: 'EDIT ME: The Loop',
-                text: 'EDIT ME: a sentence or two about this stop -- what the map shows here and why it matters.'
+                // Opening shot: the whole city, CTA lines only. No card --
+                // this is the resting state, not a narrated beat.
+                center: [-87.6298, 41.8781],
+                zoom: 10.5,
+                card: 'none',
+                highlight: null
             },
             {
-                center: [-87.6773, 41.9088],
-                zoom: 15.5,
-                title: 'EDIT ME: Wicker Park',
-                text: 'EDIT ME: a sentence or two about this stop.'
+                // Zoom into one neighborhood. Individual buildings fade in
+                // (still plain gray -- see grayscaleBuildingColor below) as
+                // the camera crosses the buildings layer's own minzoom
+                // during the flight; nothing to configure here for that,
+                // it's the same fade every other zoom level already uses.
+                center: [-87.636564, 41.886142],
+                zoom: 15.87,
+                card: 'none',
+                highlight: null
             },
             {
-                center: [-87.6538, 41.9385],
-                zoom: 15.5,
-                title: 'EDIT ME: Belmont junction',
-                text: 'EDIT ME: a sentence or two about this stop.'
+                // Same view, spotlight one building in its real (eventual)
+                // noise color -- a preview of what the full-color view
+                // (see the explore map at the bottom of the page) looks like.
+                center: [-87.636564, 41.886142],
+                zoom: 15.87,
+                card: 'text',
+                title: 'EDIT ME: Why this building',
+                text: 'EDIT ME: a sentence or two about the highlighted building -- how loud it gets and why.',
+                highlight: 'building'
             },
             {
-                center: [-87.6698, 41.8574],
-                zoom: 15.5,
-                title: 'EDIT ME: Pilsen',
-                text: 'EDIT ME: a sentence or two about this stop.'
+                // Same view, swap the building spotlight for the tracks.
+                center: [-87.636564, 41.886142],
+                zoom: 15.87,
+                card: 'text',
+                title: 'EDIT ME: The line running past it',
+                text: 'EDIT ME: a sentence or two about which CTA line(s) run through this view and how often.',
+                highlight: 'lines'
             },
             {
-                center: [-87.5960, 41.8032],
-                zoom: 15,
-                title: 'EDIT ME: Hyde Park',
-                text: 'EDIT ME: a sentence or two about this stop.'
+                // Same view again, a photo instead of a text card. highlight
+                // carries the track spotlight over from step 4 -- change to
+                // null here if you'd rather this beat had no highlight.
+                center: [-87.636564, 41.886142],
+                zoom: 15.87,
+                card: 'image',
+                image: {
+                    src: 'imgs/EDIT-ME.jpg',
+                    alt: 'EDIT ME: describe the photo',
+                    caption: 'EDIT ME: caption / credit.'
+                },
+                highlight: 'lines'
             }
         ];
+
+        // The one building spotlighted by STORY_STEPS' step 3 (highlight:
+        // 'building') -- id 502947 in nb3_buildings_coded.geojson /
+        // coded_bldgs.pmtiles, found by point-in-polygon lookup for
+        // (41.8854464, -87.6346072), the coordinate used to identify it.
+        // If you change which building step 3 points at, re-run that same
+        // lookup against nb3_buildings_4326.geojsonl for the new id.
+        const SPOTLIGHT_BUILDING_ID = 502947;
+
+        // Plain, "no data yet" gray for every building except the one
+        // spotlighted by step 3 -- see grayscaleBuildingColor below.
+        const BUILDING_GRAYSCALE_COLOR = '#4a4744';
 
         // Register the pmtiles:// protocol so MapLibre can read the .pmtiles
         // archive directly over HTTP range requests (no tile server needed).
@@ -845,6 +952,19 @@
             zoom: 10.5,
             hash: true
         });
+
+        // City of Chicago boundary polygon -- used below to hide basemap
+        // place labels (suburbs, villages, towns) that fall outside city
+        // limits, since many of them (Oak Park, Cicero, Evanston...) sit
+        // right at Chicago's edge, too close for a bounding box to
+        // distinguish from the city itself. Traced from OSM's Chicago
+        // boundary relation via Nominatim (polygon_geojson=1) and simplified
+        // (Douglas-Peucker, ~30m tolerance) from ~3800 points down to ~470 --
+        // still exact enough to place labels correctly, a fraction of the
+        // size to ship. Includes Chicago's real shape quirks: the narrow
+        // corridor out to O'Hare, and small non-Chicago enclaves (Norridge,
+        // Harwood Heights, and two others) as interior holes.
+        const CHICAGO_BOUNDARY = {"type":"Polygon","coordinates":[[[-87.94009,42.0008],[-87.94003,41.99813],[-87.93753,41.99744],[-87.93595,41.99973],[-87.93574,41.99973],[-87.93773,41.99678],[-87.93874,41.99354],[-87.94,41.99351],[-87.9396,41.95671],[-87.92608,41.95466],[-87.91619,41.95235],[-87.9163,41.95589],[-87.91665,41.95589],[-87.91625,41.95757],[-87.91562,41.95737],[-87.91525,41.95621],[-87.91501,41.95201],[-87.91235,41.95136],[-87.91213,41.95289],[-87.90455,41.95125],[-87.89276,41.95071],[-87.8928,41.95446],[-87.8889,41.95791],[-87.88062,41.95714],[-87.88075,41.97295],[-87.86187,41.97333],[-87.86003,41.97165],[-87.85856,41.97132],[-87.85512,41.97245],[-87.85404,41.97134],[-87.85506,41.96865],[-87.85472,41.9665],[-87.85579,41.96434],[-87.85575,41.96227],[-87.85881,41.95738],[-87.85876,41.95626],[-87.85821,41.95545],[-87.8466,41.95567],[-87.84663,41.95166],[-87.85389,41.95147],[-87.85514,41.94868],[-87.8519,41.93939],[-87.85109,41.93842],[-87.8496,41.93729],[-87.81652,41.93794],[-87.81639,41.93433],[-87.80661,41.93452],[-87.80577,41.90887],[-87.77558,41.90925],[-87.77413,41.86546],[-87.73996,41.86597],[-87.73849,41.82211],[-87.74483,41.82198],[-87.74456,41.81612],[-87.75312,41.81344],[-87.75272,41.80019],[-87.79707,41.79945],[-87.80188,41.79791],[-87.80078,41.77371],[-87.74216,41.77478],[-87.74106,41.73453],[-87.68251,41.73553],[-87.68184,41.71367],[-87.69173,41.71357],[-87.69151,41.70721],[-87.70136,41.70709],[-87.70133,41.70619],[-87.71111,41.70606],[-87.7113,41.71149],[-87.71254,41.71146],[-87.71258,41.71329],[-87.72112,41.71318],[-87.72033,41.69127],[-87.73974,41.69089],[-87.73945,41.68363],[-87.7115,41.68409],[-87.71137,41.68043],[-87.70529,41.68058],[-87.70542,41.68419],[-87.70056,41.68427],[-87.70062,41.68613],[-87.6994,41.68615],[-87.69947,41.68793],[-87.69579,41.68799],[-87.69566,41.68434],[-87.68584,41.68448],[-87.6857,41.67903],[-87.68636,41.67721],[-87.66785,41.67742],[-87.66855,41.67613],[-87.66714,41.67585],[-87.66655,41.67744],[-87.66136,41.67755],[-87.66115,41.67033],[-87.64167,41.67054],[-87.64142,41.66325],[-87.64722,41.66316],[-87.64697,41.65703],[-87.64122,41.65743],[-87.63288,41.65711],[-87.62964,41.65834],[-87.62361,41.66201],[-87.62027,41.66177],[-87.6194,41.66054],[-87.61962,41.65909],[-87.61791,41.65907],[-87.61834,41.65448],[-87.62007,41.65085],[-87.61722,41.65036],[-87.61723,41.64459],[-87.52509,41.6446],[-87.52447,41.70802],[-87.52496,41.70897],[-87.52412,41.70936],[-87.52575,41.71043],[-87.52666,41.70989],[-87.52837,41.71083],[-87.52516,41.71333],[-87.52669,41.71252],[-87.52783,41.71351],[-87.5286,41.71559],[-87.52661,41.71725],[-87.52447,41.71741],[-87.52559,41.71935],[-87.52551,41.72067],[-87.52508,41.72085],[-87.52542,41.72093],[-87.52446,41.72191],[-87.52465,41.73117],[-87.52947,41.73238],[-87.52893,41.73389],[-87.52986,41.74061],[-87.53959,41.7405],[-87.53952,41.74103],[-87.52992,41.74134],[-87.53097,41.74808],[-87.54034,41.75186],[-87.54342,41.75219],[-87.54428,41.75435],[-87.54395,41.75524],[-87.54056,41.7573],[-87.54167,41.75785],[-87.54434,41.76068],[-87.54652,41.76066],[-87.54465,41.76061],[-87.54651,41.75903],[-87.54897,41.75892],[-87.55419,41.76112],[-87.55456,41.76188],[-87.55367,41.76238],[-87.55552,41.76178],[-87.55845,41.76402],[-87.55936,41.76405],[-87.55961,41.76494],[-87.56054,41.76556],[-87.56038,41.76629],[-87.55935,41.76666],[-87.55942,41.76938],[-87.56019,41.76855],[-87.56241,41.76937],[-87.56358,41.77212],[-87.56601,41.77324],[-87.56861,41.77637],[-87.57179,41.77858],[-87.57309,41.78026],[-87.56832,41.78157],[-87.56756,41.7846],[-87.56843,41.78163],[-87.57042,41.78113],[-87.57611,41.78364],[-87.57725,41.78645],[-87.57727,41.78837],[-87.57479,41.78865],[-87.57637,41.78857],[-87.57807,41.78977],[-87.57929,41.79344],[-87.57822,41.79477],[-87.57542,41.79545],[-87.57529,41.79661],[-87.57613,41.79703],[-87.5781,41.79697],[-87.57955,41.79792],[-87.58053,41.80096],[-87.58005,41.80379],[-87.58517,41.80723],[-87.58692,41.81008],[-87.58734,41.81174],[-87.58947,41.81304],[-87.59209,41.81657],[-87.59262,41.8183],[-87.59488,41.82],[-87.59417,41.82149],[-87.59446,41.82114],[-87.59692,41.82247],[-87.59734,41.82338],[-87.59673,41.82361],[-87.59739,41.82344],[-87.59757,41.82379],[-87.59771,41.82626],[-87.60014,41.82809],[-87.60247,41.83075],[-87.60292,41.83276],[-87.60224,41.8333],[-87.60167,41.83297],[-87.60089,41.83485],[-87.60162,41.83797],[-87.60422,41.83983],[-87.60497,41.83891],[-87.60619,41.83943],[-87.6072,41.84013],[-87.60728,41.84055],[-87.60671,41.84057],[-87.60756,41.84057],[-87.60793,41.84117],[-87.60806,41.84232],[-87.60917,41.84424],[-87.60843,41.84605],[-87.60951,41.84805],[-87.60925,41.8509],[-87.61044,41.85256],[-87.60653,41.85336],[-87.60707,41.85986],[-87.60595,41.86007],[-87.60601,41.86203],[-87.6069,41.86251],[-87.60721,41.86466],[-87.60678,41.86512],[-87.60606,41.8648],[-87.60563,41.86642],[-87.60623,41.86713],[-87.59055,41.88013],[-87.59053,41.89531],[-87.60779,41.90314],[-87.61916,41.90099],[-87.62167,41.90197],[-87.62359,41.90409],[-87.62482,41.90754],[-87.62511,41.91025],[-87.62468,41.91139],[-87.62326,41.91249],[-87.62047,41.91341],[-87.62017,41.91395],[-87.62019,41.91459],[-87.6203,41.91474],[-87.62053,41.91485],[-87.62083,41.91485],[-87.62101,41.91478],[-87.62029,41.91466],[-87.62025,41.91386],[-87.62303,41.91403],[-87.62593,41.9159],[-87.62657,41.91646],[-87.62605,41.9168],[-87.6276,41.9178],[-87.62681,41.91826],[-87.62827,41.9193],[-87.62733,41.91975],[-87.6278,41.91959],[-87.62877,41.92086],[-87.62771,41.92136],[-87.62831,41.92115],[-87.6294,41.9225],[-87.62834,41.92308],[-87.6289,41.92281],[-87.63001,41.92411],[-87.62892,41.92492],[-87.62896,41.92595],[-87.63093,41.92945],[-87.63067,41.93187],[-87.63124,41.9324],[-87.63069,41.93253],[-87.63018,41.93355],[-87.6331,41.93829],[-87.63389,41.94148],[-87.63435,41.94175],[-87.63303,41.94259],[-87.63781,41.94786],[-87.64073,41.9541],[-87.64168,41.95837],[-87.64158,41.95933],[-87.63674,41.95952],[-87.6343,41.96136],[-87.63132,41.96256],[-87.63102,41.96332],[-87.63167,41.96401],[-87.63193,41.9657],[-87.6309,41.96854],[-87.63107,41.96875],[-87.63138,41.96886],[-87.6317,41.96882],[-87.63193,41.96865],[-87.63199,41.96837],[-87.63183,41.96815],[-87.63161,41.96878],[-87.63097,41.96843],[-87.63222,41.96659],[-87.63484,41.96668],[-87.64374,41.96931],[-87.64534,41.97127],[-87.64625,41.97325],[-87.64649,41.97724],[-87.64839,41.97783],[-87.65064,41.98047],[-87.65066,41.98344],[-87.64937,41.9864],[-87.64977,41.98569],[-87.65058,41.98599],[-87.65424,41.98891],[-87.65371,41.98992],[-87.65443,41.99099],[-87.65407,41.99302],[-87.65464,41.99338],[-87.65424,41.99407],[-87.65464,41.99578],[-87.65426,41.99601],[-87.65443,41.99775],[-87.65682,42.00272],[-87.6571,42.00535],[-87.65687,42.0063],[-87.65545,42.00662],[-87.66096,42.012],[-87.66223,42.01575],[-87.66268,42.01574],[-87.66321,42.01711],[-87.664,42.02135],[-87.66456,42.0216],[-87.66506,42.02296],[-87.67711,42.02305],[-87.67312,42.01938],[-87.70889,42.01915],[-87.70934,41.99738],[-87.75288,41.9973],[-87.76227,42.00169],[-87.76167,42.00828],[-87.76747,42.00833],[-87.76755,42.00466],[-87.76548,42.0037],[-87.76578,42.00334],[-87.76939,42.00495],[-87.77335,42.01196],[-87.77704,42.01198],[-87.77695,42.01561],[-87.77913,42.0156],[-87.77925,42.012],[-87.78873,42.012],[-87.78199,42.00449],[-87.79074,42.00056],[-87.79113,42.001],[-87.79715,42.00095],[-87.79715,42.00002],[-87.79941,42.0],[-87.79961,42.00096],[-87.8011,42.00095],[-87.80109,42.00155],[-87.80533,42.00151],[-87.80532,42.00087],[-87.80673,42.00085],[-87.80655,42.01897],[-87.82122,42.01864],[-87.82122,42.01554],[-87.82007,42.01555],[-87.82012,42.01197],[-87.81975,42.01139],[-87.82125,42.01136],[-87.8214,41.99688],[-87.82335,41.98448],[-87.85581,41.98904],[-87.8555,41.98791],[-87.85673,41.98482],[-87.85585,41.98108],[-87.8617,41.97561],[-87.86205,41.97386],[-87.8759,41.97392],[-87.87588,41.97661],[-87.8738,41.97673],[-87.88035,41.99523],[-87.88453,41.99513],[-87.88456,41.99825],[-87.89705,42.00045],[-87.89708,42.00218],[-87.89013,42.00232],[-87.88995,42.00324],[-87.89187,42.00403],[-87.89413,42.00405],[-87.89412,42.00547],[-87.89861,42.00733],[-87.90433,42.0089],[-87.90771,42.00877],[-87.90769,42.00516],[-87.91301,42.00512],[-87.91329,42.0086],[-87.91378,42.00859],[-87.91375,42.00514],[-87.92062,42.00514],[-87.92062,42.00469],[-87.92152,42.00468],[-87.92306,42.00636],[-87.92582,42.0074],[-87.92933,42.00483],[-87.93309,42.0054],[-87.93327,42.00818],[-87.93521,42.00816],[-87.93501,42.00109],[-87.94009,42.0008]],[[-87.84656,41.96641],[-87.84654,41.9719],[-87.84157,41.97198],[-87.84158,41.97016],[-87.83666,41.97023],[-87.83665,41.97137],[-87.83796,41.97136],[-87.83794,41.97384],[-87.84155,41.97379],[-87.84155,41.97469],[-87.83663,41.97477],[-87.83664,41.97531],[-87.83376,41.97535],[-87.8334,41.97391],[-87.83173,41.97395],[-87.83172,41.97306],[-87.82672,41.97313],[-87.82673,41.97403],[-87.81941,41.97423],[-87.81943,41.97322],[-87.81896,41.97313],[-87.81898,41.97062],[-87.81695,41.97066],[-87.81692,41.97429],[-87.80703,41.97454],[-87.80716,41.96826],[-87.80253,41.9683],[-87.80252,41.96876],[-87.78801,41.96886],[-87.78802,41.96841],[-87.78676,41.96843],[-87.78682,41.96021],[-87.79428,41.96006],[-87.80729,41.95387],[-87.80727,41.95276],[-87.83181,41.95217],[-87.83184,41.95582],[-87.83267,41.95943],[-87.83667,41.95938],[-87.83668,41.9666],[-87.84656,41.96641]],[[-87.8351,41.9805],[-87.8351,41.98084],[-87.83423,41.98085],[-87.83424,41.9813],[-87.83509,41.98129],[-87.83507,41.98267],[-87.8336,41.98267],[-87.83358,41.98357],[-87.82824,41.98369],[-87.82826,41.98192],[-87.82527,41.98196],[-87.8253,41.983],[-87.82365,41.98302],[-87.82455,41.97607],[-87.83362,41.97592],[-87.83362,41.97689],[-87.8296,41.97696],[-87.83003,41.97842],[-87.82864,41.97844],[-87.8287,41.97912],[-87.82799,41.97929],[-87.8287,41.97929],[-87.82886,41.9806],[-87.8351,41.9805]],[[-87.69618,41.69896],[-87.6912,41.69898],[-87.69098,41.69221],[-87.6921,41.69218],[-87.69209,41.69167],[-87.69592,41.69163],[-87.69618,41.69896]]]};
 
         // Single sequential gray->red ramp (same 16 steps everywhere), applied
         // to each zoom level's own quantiles below: no measurable noise is
@@ -963,29 +1083,36 @@
             return ['interpolate', ['linear'], ['zoom'], ...level.fade];
         }
 
-        // Every layer id belonging to a LEVELS entry (fill + optional line +
-        // hover outline) -- used below to hide/reveal the noise data as a
-        // group, independent of each layer's own zoom-based opacity.
-        function layerIdsFor(level) {
-            const ids = [`${level.id}-fill`, `${level.id}-hover`];
-            if (level.stroke !== false) ids.push(`${level.id}-line`);
-            return ids;
-        }
-
         // Adds every source/layer, hover interaction, and legend behavior
         // this project uses to a single map instance -- shared by the
         // scrolly map above and the free-roam explore map at the bottom of
         // the page, which are otherwise identical except for:
-        //   - startHidden: the scrolly map opens on a plain CTA-lines
-        //     overview and reveals the noise-data layers only once the
-        //     guided tour engages (see goToStep, below); the explore map
-        //     just shows everything immediately.
-        //   - legendEl/tooltipEl/drawerEl: each map has its own chrome
-        //     elements (different ids -- #legend vs #explore-legend, etc.)
-        //     so hovering one map never updates the other's tooltip.
-        // Calls onReady({ revealDataLayers }) once everything's added, for
-        // the scrolly-specific step logic that needs to trigger the reveal.
-        function setupMapLayers(mapInstance, { legendEl, tooltipEl, drawerEl, startHidden }, onReady) {
+        //   - hiddenLevelIds: LEVELS ids to keep permanently hidden on this
+        //     map instance. The scrolly map hides every grid level (its 5
+        //     steps never zoom out far enough to need them, and several of
+        //     those levels' own zoom ranges DO cover the step 1 city-wide
+        //     overview, so left unhidden they'd show aggregated color data
+        //     there when only CTA lines should be visible). The explore map
+        //     passes none -- everything's available as you zoom.
+        //   - grayscaleBuildingColor + spotlightBuildingId: if set, the
+        //     buildings layer ignores its real per-building color and
+        //     paints this flat gray instead, EXCEPT for spotlightBuildingId
+        //     when its feature-state 'spotlight' is true -- see
+        //     setBuildingSpotlight, passed to onReady. The scrolly map uses
+        //     this so buildings appear un-color-coded until step 3
+        //     spotlights one as a preview; the explore map omits both
+        //     options and always shows every building's real color.
+        //   - legendEl/tooltipEl/drawerEl: omit all three (as the scrolly
+        //     map does) to skip hover/legend entirely -- this project's
+        //     guided tour is meant to be watched, not poked at; that's what
+        //     the explore map at the bottom of the page is for.
+        // Calls onReady({ setBuildingSpotlight, setLinesSpotlight }) once
+        // everything's added, for the scrolly-specific step logic that
+        // triggers those spotlights -- harmless to ignore if unused.
+        function setupMapLayers(mapInstance, {
+            legendEl = null, tooltipEl = null, drawerEl = null,
+            hiddenLevelIds = [], grayscaleBuildingColor = null, spotlightBuildingId = null
+        }, onReady) {
             mapInstance.on('load', () => {
                 // The CARTO basemap ships its own generic OSM building
                 // footprints (id "building-top", the visible gray fill; "building"
@@ -996,6 +1123,49 @@
                 // want ours, so drop the basemap's.
                 mapInstance.removeLayer('building-top');
                 mapInstance.removeLayer('building');
+
+                // Likewise, the basemap's place-name labels cover every
+                // surrounding suburb (Oak Park, Cicero, Evanston, Skokie...)
+                // whether or not it's relevant to this story -- restrict
+                // each of those label layers to CHICAGO_BOUNDARY (declared
+                // above) so only places actually within city limits get a
+                // label. A simple bounding box wouldn't work here: several
+                // of these suburbs sit right at Chicago's edge, closer to
+                // downtown than parts of the city's own far edges are.
+                // Layers left untouched: place_state/place_country/
+                // place_continent -- those only render at very low zoom, as
+                // legitimate "where in the world is this" context rather
+                // than the neighboring-suburb clutter this is aimed at.
+                //
+                // Each filter below re-expresses that layer's original
+                // condition (see comment) in modern expression syntax (e.g.
+                // ['==', ['get', 'class'], 'x'] rather than the basemap's own
+                // legacy ['==', 'class', 'x'] shorthand) before ANDing in
+                // ['within', ...] -- mixing modern 'within' into a legacy-
+                // style filter makes MapLibre validate the whole thing
+                // against the legacy operator set, which doesn't include
+                // 'within', and it's rejected outright.
+                const withinChicago = ['within', CHICAGO_BOUNDARY];
+                const placeClass = (name) => ['==', ['get', 'class'], name];
+                mapInstance.setFilter('place_hamlet', ['all',
+                    ['any', placeClass('neighbourhood'), placeClass('hamlet')], withinChicago]);
+                mapInstance.setFilter('place_suburbs', ['all', placeClass('suburb'), withinChicago]);
+                mapInstance.setFilter('place_villages', ['all', placeClass('village'), withinChicago]);
+                mapInstance.setFilter('place_town', ['all', placeClass('town'), withinChicago]);
+                mapInstance.setFilter('place_city_r6', ['all',
+                    placeClass('city'), ['>=', ['get', 'rank'], 6], withinChicago]);
+                mapInstance.setFilter('place_city_r5', ['all',
+                    placeClass('city'), ['>=', ['get', 'rank'], 0], ['<=', ['get', 'rank'], 5], withinChicago]);
+                mapInstance.setFilter('place_city_dot_r7', ['all',
+                    placeClass('city'), ['<=', ['get', 'rank'], 7], withinChicago]);
+                mapInstance.setFilter('place_city_dot_r4', ['all',
+                    placeClass('city'), ['<=', ['get', 'rank'], 4], withinChicago]);
+                mapInstance.setFilter('place_city_dot_r2', ['all',
+                    placeClass('city'), ['<=', ['get', 'rank'], 2], withinChicago]);
+                mapInstance.setFilter('place_city_dot_z7', ['all',
+                    ['!', ['has', 'capital']], ['!', ['in', ['get', 'class'], ['literal', ['country', 'state']]]], withinChicago]);
+                mapInstance.setFilter('place_capital_dot_z7', ['all',
+                    ['>', ['get', 'capital'], 0], withinChicago]);
 
                 // Individual buildings, built with tippecanoe from
                 // nb3_buildings_coded.geojson (reprojected to lon/lat; see
@@ -1025,12 +1195,24 @@
                 // coarsest to most detailed so buildings paint on top once they fade
                 // in. The grid levels skip the border -- at low zoom their square
                 // cell edges read as a distracting grid overlay rather than useful
-                // detail, so only individual buildings keep an outline. If
-                // startHidden, all start hidden (visibility: none) and
-                // revealDataLayers() below switches them on once the reader
-                // scrolls into the guided tour; otherwise they're visible
-                // immediately.
+                // detail, so only individual buildings keep an outline. Levels named
+                // in hiddenLevelIds stay permanently hidden on this map instance
+                // (see setupMapLayers' doc comment above); everything else is visible
+                // immediately and relies on its own minzoom/maxzoom + fadeOpacity to
+                // decide when it's actually on screen.
                 for (const level of LEVELS) {
+                    const hidden = hiddenLevelIds.includes(level.id);
+
+                    // Only the buildings level ever gets grayscaleBuildingColor --
+                    // everything else keeps its normal per-feature color always.
+                    // When set, this "case" wraps the real interpolate expression
+                    // so the ONE feature with feature-state.spotlight = true (see
+                    // setBuildingSpotlight below) still shows its true color while
+                    // every other feature falls back to the flat gray.
+                    const fillColor = (level.id === 'buildings' && grayscaleBuildingColor)
+                        ? ['case', ['boolean', ['feature-state', 'spotlight'], false], colorRamp(level), grayscaleBuildingColor]
+                        : colorRamp(level);
+
                     mapInstance.addLayer({
                         id: `${level.id}-fill`,
                         type: 'fill',
@@ -1038,9 +1220,9 @@
                         'source-layer': level.sourceLayer,
                         minzoom: level.minzoom,
                         maxzoom: level.maxzoom,
-                        layout: { visibility: startHidden ? 'none' : 'visible' },
+                        layout: { visibility: hidden ? 'none' : 'visible' },
                         paint: {
-                            'fill-color': colorRamp(level),
+                            'fill-color': fillColor,
                             'fill-opacity': fadeOpacity(level)
                         }
                     });
@@ -1053,7 +1235,7 @@
                             'source-layer': level.sourceLayer,
                             minzoom: level.minzoom,
                             maxzoom: level.maxzoom,
-                            layout: { visibility: startHidden ? 'none' : 'visible' },
+                            layout: { visibility: hidden ? 'none' : 'visible' },
                             paint: {
                                 'line-color': '#000',
                                 'line-width': 0.2,
@@ -1070,7 +1252,7 @@
                         'source-layer': level.sourceLayer,
                         minzoom: level.minzoom,
                         maxzoom: level.maxzoom,
-                        layout: { visibility: startHidden ? 'none' : 'visible' },
+                        layout: { visibility: hidden ? 'none' : 'visible' },
                         paint: {
                             'line-color': '#ffffff',
                             'line-width': ['case', ['boolean', ['feature-state', 'hover'], false], 2, 0],
@@ -1079,26 +1261,15 @@
                     });
                 }
 
-                let dataLayersRevealed = !startHidden;
-                function revealDataLayers() {
-                    if (dataLayersRevealed) return;
-                    dataLayersRevealed = true;
-                    for (const level of LEVELS) {
-                        for (const id of layerIdsFor(level)) {
-                            mapInstance.setLayoutProperty(id, 'visibility', 'visible');
-                        }
-                    }
-                }
-
                 // CTA train lines, reprojected to lon/lat from nb2_cta_lines_updated.geojson
                 // (see scripts/prep_cta_lines.py). Only 23 short segments, so this is
                 // served as a plain GeoJSON source rather than tiled like the buildings/
                 // grids -- and added last, after every LEVELS layer above, so it always
                 // paints on top of them regardless of zoom. generateId assigns each
                 // feature a numeric id for hover feature-state (there's no natural
-                // unique id in the source data to promote). Visible from the very
-                // start regardless of startHidden -- on the scrolly map, this is the
-                // only layer shown during the opening overview.
+                // unique id in the source data to promote). Never in hiddenLevelIds --
+                // on the scrolly map, this is the only thing shown during step 1's
+                // opening overview.
                 mapInstance.addSource('cta_lines', {
                     type: 'geojson',
                     data: 'cta_lines_4326.geojson',
@@ -1116,6 +1287,23 @@
                         'line-color': '#0b1a33',
                         'line-width': ['interpolate', ['linear'], ['zoom'], 8, 2.5, 16, 6],
                         'line-opacity': 0.9
+                    }
+                });
+                // A soft accent-colored glow, under the crisp colored line so it
+                // doesn't obscure it, that appears only when feature-state
+                // 'tourSpotlight' is set -- see setLinesSpotlight below, driven by
+                // STORY_STEPS' highlight: 'lines' (step 4). Distinct from
+                // cta-lines-hover (mouse-driven, thin white) since this needs to
+                // stay on for an entire step rather than flash on momentary hover.
+                mapInstance.addLayer({
+                    id: 'cta-lines-spotlight',
+                    type: 'line',
+                    source: 'cta_lines',
+                    paint: {
+                        'line-color': '#ff5a3c',
+                        'line-width': ['case', ['boolean', ['feature-state', 'tourSpotlight'], false], 14, 0],
+                        'line-opacity': 0.55,
+                        'line-blur': 3
                     }
                 });
                 mapInstance.addLayer({
@@ -1138,6 +1326,41 @@
                         'line-opacity': 0.5
                     }
                 });
+
+                // Every currently-loaded cta_lines feature id, captured once the
+                // source finishes loading -- used by setLinesSpotlight below to set
+                // feature-state on all 23 segments at once. There's no natural
+                // unique id in the source data (hence generateId above), so this is
+                // the only way to enumerate them.
+                let ctaLineIds = [];
+                const captureCtaLineIds = (e) => {
+                    if (e.sourceId !== 'cta_lines' || !mapInstance.isSourceLoaded('cta_lines')) return;
+                    ctaLineIds = mapInstance.querySourceFeatures('cta_lines').map((f) => f.id);
+                };
+                mapInstance.on('sourcedata', captureCtaLineIds);
+
+                function setBuildingSpotlight(on) {
+                    if (spotlightBuildingId == null) return;
+                    mapInstance.setFeatureState(
+                        { source: 'buildings', sourceLayer: 'buildings', id: spotlightBuildingId },
+                        { spotlight: on }
+                    );
+                }
+
+                function setLinesSpotlight(on) {
+                    for (const id of ctaLineIds) {
+                        mapInstance.setFeatureState({ source: 'cta_lines', id }, { tourSpotlight: on });
+                    }
+                }
+
+                // Hover/tooltip/legend are all-or-nothing: the scrolly map omits
+                // legendEl/tooltipEl/drawerEl entirely (it's a guided visual, not
+                // meant to be poked at -- see setupMapLayers' doc comment above),
+                // while the explore map always passes all three.
+                if (!tooltipEl || !drawerEl || !legendEl) {
+                    if (onReady) onReady({ setBuildingSpotlight, setLinesSpotlight });
+                    return;
+                }
 
                 // Only devices with a real mouse get hover behavior (desktops/laptops).
                 const canHover = window.matchMedia('(hover: hover)').matches;
@@ -1270,39 +1493,56 @@
                 mapInstance.on('zoom', updateLegend);
                 updateLegend();
 
-                if (onReady) onReady({ revealDataLayers });
+                if (onReady) onReady({ setBuildingSpotlight, setLinesSpotlight });
             });
         }
 
         setupMapLayers(map, {
-            legendEl: document.getElementById('legend'),
-            tooltipEl: document.getElementById('tooltip'),
-            drawerEl: document.getElementById('drawer'),
-            startHidden: true
-        }, ({ revealDataLayers }) => {
+            hiddenLevelIds: ['grid300', 'grid120', 'grid45', 'grid18'],
+            grayscaleBuildingColor: BUILDING_GRAYSCALE_COLOR,
+            spotlightBuildingId: SPOTLIGHT_BUILDING_ID
+        }, ({ setBuildingSpotlight, setLinesSpotlight }) => {
             // ========================================================
             // SCROLLYTELLING -- render STORY_STEPS into .scrolly-steps,
             // then watch each one with IntersectionObserver so the map
-            // flies to a new step as it crosses the middle of the
-            // viewport. See EDIT-STEPS above to change the tour itself;
-            // nothing here needs to change for that.
+            // flies to a new step (and updates its spotlight) as it
+            // crosses the middle of the viewport. See EDIT-STEPS above
+            // to change the tour itself; nothing here needs to change
+            // for that.
             // ========================================================
             const stepsContainer = document.getElementById('scrolly-steps');
             const stickyEl = document.getElementById('scrolly-sticky');
 
             STORY_STEPS.forEach((step, i) => {
                 const el = document.createElement('div');
-                // "step-tour" (as opposed to the static .step-lead-in above)
-                // is what the observer below watches -- keeps the lead-in
-                // block from being mistaken for a real, observable step.
                 el.className = 'step step-tour';
                 el.dataset.index = String(i);
-                el.innerHTML = `
-                    <div class="step-card">
-                        <p class="step-index">${String(i + 1).padStart(2, '0')} / ${String(STORY_STEPS.length).padStart(2, '0')}</p>
-                        <h3>${step.title}</h3>
-                        <p>${step.text}</p>
-                    </div>`;
+
+                const indexLabel = `${String(i + 1).padStart(2, '0')} / ${String(STORY_STEPS.length).padStart(2, '0')}`;
+                if (step.card === 'text') {
+                    el.innerHTML = `
+                        <div class="step-card">
+                            <p class="step-index">${indexLabel}</p>
+                            <h3>${step.title}</h3>
+                            <p>${step.text}</p>
+                        </div>`;
+                } else if (step.card === 'image') {
+                    // EDIT ME (in STORY_STEPS above): once step.image.src points
+                    // at a real file, this renders it directly -- no separate
+                    // placeholder markup to swap out, unlike the intro/outro
+                    // photo blocks, since this one's built from data already.
+                    el.innerHTML = `
+                        <div class="step-card step-card-image">
+                            <p class="step-index">${indexLabel}</p>
+                            <div class="step-card-photo">
+                                <img src="${step.image.src}" alt="${step.image.alt}"
+                                    onerror="this.replaceWith(Object.assign(document.createElement('div'), {className: 'step-card-photo-placeholder', textContent: 'Photo placeholder — add ' + this.getAttribute('src')}))">
+                            </div>
+                            <p class="step-card-caption">${step.image.caption}</p>
+                        </div>`;
+                }
+                // card === 'none': el stays empty -- just the 100vh scroll
+                // spacer, no card, matching STORY_STEPS steps 1 and 2.
                 stepsContainer.appendChild(el);
             });
 
@@ -1310,16 +1550,25 @@
             let activeStepIndex = -1;
 
             function goToStep(i) {
-                revealDataLayers();
-                stickyEl.classList.add('is-engaged');
                 const step = STORY_STEPS[i];
                 map.flyTo({ center: step.center, zoom: step.zoom, essential: true, duration: 1200 });
+                setBuildingSpotlight(step.highlight === 'building');
+                setLinesSpotlight(step.highlight === 'lines');
+                // Step 1 (i === 0) is the resting/opening state -- its own
+                // scroll-cue stays visible there and nowhere else. Toggling
+                // (not just adding) this class is what lets scrolling back UP
+                // to step 1 restore the opening view instead of getting stuck
+                // whever the reader scrolled down to: since goToStep fires
+                // again on re-entering step 1, the map flies back out too.
+                stickyEl.classList.toggle('is-engaged', i !== 0);
             }
 
             // threshold 0.6 fires once a step is mostly centered in the
             // viewport, which -- since each step is exactly 100vh -- lands
             // right as it becomes the "current" one scrolling past the
-            // pinned map.
+            // pinned map. This fires in BOTH scroll directions, which is
+            // exactly what makes scrolling back up to step 1 re-trigger
+            // goToStep(0) and fly back out to the opening view.
             const stepObserver = new IntersectionObserver((entries) => {
                 for (const entry of entries) {
                     if (!entry.isIntersecting) continue;
@@ -1338,8 +1587,7 @@
         setupMapLayers(exploreMap, {
             legendEl: document.getElementById('explore-legend'),
             tooltipEl: document.getElementById('explore-tooltip'),
-            drawerEl: document.getElementById('explore-drawer'),
-            startHidden: false
+            drawerEl: document.getElementById('explore-drawer')
         });
 
         // Zoom-in/zoom-out/compass buttons and the address search box --
