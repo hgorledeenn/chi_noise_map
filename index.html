@@ -496,9 +496,17 @@
             margin-top: 6px;
         }
 
-        /* A single color-swatch + label row -- the CTA-rail key on both
-           maps (see markup: a standalone .map-legend on the scrolly map,
-           an extra row appended to the existing one on the explore map). */
+        /* The CTA-rail key on both maps (see markup: a standalone
+           .map-legend on the scrolly maps, an extra group appended to the
+           existing one on the explore map) -- two rows, one swatch showing
+           the multi-color line treatment and one showing the dashed
+           "underground" treatment. */
+        .legend-key-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
         .legend-key-row {
             display: flex;
             align-items: center;
@@ -511,18 +519,45 @@
             height: 3px;
             border-radius: 1px;
             flex-shrink: 0;
+            background: linear-gradient(90deg, #c60c30 0 25%, #00a1de 25% 50%, #62361b 50% 75%, #522398 75% 100%);
         }
 
-        #explore-legend .legend-key-row {
+        .legend-key-swatch--dashed {
+            background: repeating-linear-gradient(90deg, #4a4744 0 4px, transparent 4px 7px);
+        }
+
+        #explore-legend .legend-key-group {
             margin-top: 8px;
             padding-top: 8px;
             border-top: 1px solid var(--paper-rule);
         }
 
-        /* The scrolly map's version has no ramp/ticks/scope, just this one
-           row, so it doesn't need the full legend's fixed 190px width. */
+        /* The scrolly map's version has no scope label and only a fixed
+           2-stop ramp (see .noise-mini-legend below) rather than the full
+           legend's quantile ramp, so it doesn't need the full legend's
+           fixed 190px width. */
         .map-legend-mini {
             width: auto;
+            max-width: 190px;
+        }
+
+        /* The scrolly map's simplified noise-color key -- just the two
+           ramp endpoints, no numeric ticks, since (unlike the explore map)
+           this tour never shows a number the reader hasn't already been
+           given in the step text. Hidden until initScrollyTour toggles
+           .is-visible on (see STORY_STEPS' showNoiseLegend, and its own
+           doc comment on why the opening city-wide shot skips it). */
+        .noise-mini-legend {
+            display: none;
+        }
+
+        .noise-mini-legend.is-visible {
+            display: flex;
+        }
+
+        .noise-mini-legend .ticks {
+            flex-wrap: wrap;
+            gap: 2px 10px;
         }
 
         /* On narrow screens the step card takes over the bottom of the
@@ -656,28 +691,20 @@
         <div class="story-hero-inner">
             <h1 class="story-title">Chicago's "Train Tax", Calculated</h1>
             <p class="story-subhead">The Windy City is one of the few major cities with urban rapid train networks that
-                run primarily above ground. For Chicago residents, the network provides much needed connection. But get
-                too close and you won't hear the end of it (literally).</p>
+                run primarily above ground. For many Chicago residents, the network provides much needed connection
+                with little downside. But get too close and you won't hear the end of it (literally).</p>
             <p class="story-byline">By <a href="https://hgorledeenn.github.io/" target="_blank">Holden Green</a>
                 &nbsp;·&nbsp; August 2026</p>
         </div>
     </header>
 
     <section class="story-text story-intro">
-        <p class="story-dropcap">Dylan Moring has always wanted to live in a high-rise building. After college, the
-            33-year-old spent time in both Boston and Denver, but it wasn't until he moved to Chicago that his dream
-            could come true. Thanks, in no small part, to the Chicago Transit Authority train system.</p>
+        <p class="story-dropcap">Dylan Moring always wanted to live in a high-rise building. He just didn’t know he
+            had the Chicago L Train to thank for it.</p>
 
-        <p>Chicago’s urban rail network – known to Chicagoans as the “L” – is made up of eight distinct lines serves
-            nearly half a million riders every week day. The L follows a “hub-and-spoke” model, meaning that most of its
-            lines start outside the downtown and bring riders to the central business district. When the train lines
-            meet in the city’s center, they follow a circular path around the downtown, which many residents call the
-            “Loop”.</p>
-
-        <p>Unlike urban rail networks in most other major cities, the Chicago L runs mostly above ground. Only about 12%
-            of the system’s 146 stations are underground. In New York City and Washington D.C., by comparison, more than
-            half the stations are underground.</p>
-
+        <p>Unlike urban rail networks in most other major cities, the Chicago L runs mostly above ground. Only about
+            12% of the system’s 146 stations are underground. In New York City and Washington D.C., by comparison,
+            more than half the stations are underground.</p>
 
         <figure class="story-photo">
             <div class="story-photo-placeholder">
@@ -687,22 +714,14 @@
             <figcaption>A Howard-bound CTA Red Line train stops at the Granville station on October 17, 2022 in Chicago.
                 (Holden Green)</figcaption>
         </figure>
-        <p>There are downsides to the underground systems embraced in New York and DC. Summertime often brings
-            complaints of
-            <a href="https://gothamist.com/news/wet-hot-american-subway-heat-wave-leaves-nyc-riders-sweaty-and-suffocating"
-                target="_blank">oppressive heat</a>, as train AC systems pump hot air out of their cars and into the
-            tunnel.
-            Year round, <a
-                href="https://www.washingtonpost.com/climate-environment/interactive/2025/new-york-subway-flooding-climate-change/"
-                target="_blank">flooding</a>
-            has become an ever-increasing issue as climate change contributes to more frequent and intense storms.
-        </p>
-        <p>One positive effect of putting subway stations underground, though, is that it significantly reduces the
-            sound of the train for people on the surface.</p>
+
+        <p>While underground systems, like those embraced in New York and DC, are particularly vulnerable to climate
+            effects like oppressive heat and dangerous flooding they benefit residents by significantly the sound of
+            the train for people on the surface.</p>
 
         <p>As Chicago’s L travels through the city, it winds its way over city streets and alleyways, above parks and
-            the Chicago River. And, all along its journey, it runs as close a few feet from the second and third floors
-            of residential buildings.</p>
+            the Chicago River. And, all along its journey, it runs as close as a few feet from the second and third
+            floors of residential buildings.</p>
 
         <figure class="story-photo">
             <div class="story-photo-placeholder">
@@ -714,12 +733,7 @@
         </figure>
 
         <p>There’s a shared understanding among Chicago residents that the path of the CTA’s trains creates a “train
-            tax” effect: put simply, you can save some money on rent or a mortgage every month if you can put up with
-            the noise from the closely-passing trains.</p>
-
-        <p>For Moring, whose move to Chicago from Denver was motivated largely by a desire to be in a bigger-feeling
-            city, the train tax worked to his benefit.
-        </p>
+            tax” effect. Put simply: a tenant can save on rent, if they can put up with the noise.</p>
     </section>
 
 
@@ -736,9 +750,28 @@
             <div id="map"></div>
 
             <div class="map-legend map-legend-mini">
-                <div class="legend-key-row">
-                    <span class="legend-key-swatch" style="background:#e8302a"></span>
-                    <span>CTA rail system</span>
+                <div class="legend-key-group">
+                    <div class="legend-key-row">
+                        <span class="legend-key-swatch"></span>
+                        <span>CTA lines, colored by route</span>
+                    </div>
+                    <div class="legend-key-row">
+                        <span class="legend-key-swatch legend-key-swatch--dashed"></span>
+                        <span>Underground segment</span>
+                    </div>
+                </div>
+
+                <!-- Hidden until STORY_STEPS' step.showNoiseLegend is true
+                     (once the tour zooms in close enough for individual
+                     buildings to actually show real noise color -- there's
+                     nothing to key on the opening city-wide shot) -- toggled
+                     by initScrollyTour below. -->
+                <div class="legend-key-group noise-mini-legend" id="scrolly-noise-legend">
+                    <div class="ramp" style="background: linear-gradient(to right, #27272a, #b62b2b);"></div>
+                    <div class="ticks">
+                        <span>Less daily noise from train</span>
+                        <span>More daily noise from train</span>
+                    </div>
                 </div>
             </div>
 
@@ -759,37 +792,110 @@
          have the file (see the comment on that block below).
          ================================================================ -->
     <section class="story-text story-outro">
-        <h2>EDIT ME: A section header</h2>
-        <p>The sound from the train can reach about 85 decibels in Moring’s apartment when the windows are open. That’s about equivalent to a food blender or a leaf blower being used nearby.</p>
+        <p>The sound from the train can reach about 85 decibels in Moring’s apartment when the windows are open.
+            That’s about equivalent to making a smoothie in a blender on its highest setting.</p>
 
-        <p>When the windows are closed, that sound can drop as low as 60dB – closer to a normal conversational speaking volume, but still noticeable.</p>
+        <p>When the windows are closed, that sound can drop as low as 60dB – closer to the volume of a normal
+            conversation, but still noticeable.</p>
 
-        <p>Now that he is used to it, though, Moring doesn’t mind the sound as much.</p>
+        <p>“It definitely took a little bit of adjustment, especially at night,” Moring said. “But I think we got
+            used to it pretty quick.”</p>
 
-        <p>“It definitely took a little bit of adjustment, especially at night,” Moring said. “But I think we got used to it pretty quick.”</p>
+        <p>He thinks his adaptability to the noise has translated into direct savings on an otherwise great
+            apartment. Similar three-bedroom units could cost as much as $1,000 more per month, Moring said.</p>
 
-        <p>He thinks his adaptability to the noise has translated into direct savings on an otherwise great apartment.</p>
+        <p>On average, homes closer to the L train tend to cost more than those further away. This is due to some
+            obvious reasons, like the fact that areas near L stations tend to be more built up and densely filled
+            with shops, restaurants and other amenities.</p>
 
-        <p>“It felt kind of like a market discrepancy that we could take advantage of,” Moring said. “A lot of other buildings built in the same period of time that have three bedroom units are priced at least $1,000 a month more.”</p>
+        <p>“There are a lot of affordable neighborhoods in Chicago,” said Michael Dunst, a Transportation Planning
+            Consultant in the city. “But people don’t live there or want to move there because they’re not
+            accessible to the L.”</p>
 
-        <p>TKTK Sentence or two here abt the citywide train tax/distance once I have that figured out from my regression model TKTK</p>
+        <p>As the noise that a building experiences from the CTA L system increases, the home sale price also tends
+            to increase. But, once a building gets too close, on average about 695 feet citywide, the opposite is
+            true: the added noise that comes with living closer to the train has a negative impact on home sale
+            prices, on average, when controlling for other factors that influence home sale prices.</p>
 
-        <p>While Moring isn’t alone in his noise tolerance; there are others who set a slightly further minimum distance for how close to the train they’re willing to live.</p>
+        <p>The savings Moring said he achieved by choosing to live near the train helped him afford a high-rise
+            apartment. Others, though, often choose to miss out on certain amenities, or else pay a higher price for
+            them, in order to live a little further from the train.</p>
 
-        <p>When Natalie Trumbo moved to Chicago in 2015, she was excited to take advantage of the accessibility offered by living near the L. A transplant from upstate New York, Trumbo’s first apartment maximized this: she was in a ground floor unit that directly backed onto the Red line’s Bryn Mawr station.</p>
+        <p>When Natalie Trumbo moved to Chicago in 2015, she was excited to take advantage of the accessibility
+            offered by living near Chicago’s L system. A transplant from upstate New York, Trumbo first lived in a
+            ground floor unit that directly backed onto the Red line.</p>
 
-        <p>“It was super convenient to walk out of the alley and get on the train,” Trumbo said. “So that was a positive. But I only did it for a year.”</p>
+        <p>“It was super convenient to walk out of the alley and get on the train,” Trumbo said. “So that was a
+            positive. But I only did it for a year.”</p>
 
-        <p>While she reached some level of comfort with the noise for herself, she decided she would sacrifice some of the accessibility in order to reduce the noise from the train she was experiencing in her next home. Plus, Trumbo, 43, and her husband had other priorities.</p>
+        <p>Trumbo and her husband ultimately moved into a 2-bedroom condo on the 1500 block of W. Walton. Although
+            they still wanted the accessibility of being near the L, they prioritized being in a quieter, more
+            family friendly area as they planned for their future.</p>
 
-        <p>They now have three kids all under seven-years-old, and Trumbo commutes to the northern suburbs for her work, not into the Loop. It’s far more convenient, she explained, to just take their minivan around the city when they need to, and to not have to worry about bringing her young kids and their strollers onto the train.</p>
+        <p>They now have three kids all under seven-years-old, and Trumbo commutes to the northern suburbs for her
+            work. It’s far more convenient, she explained, to just take their minivan around the city when they need
+            to, and to not have to worry about bringing their young kids and strollers onto the train.</p>
 
-        <p>Despite this, she said it’s still important to her that her children grow up experiencing the city and feeling comfortable on public transportation.</p>
+        <p>Trumbo lives about 1,200 from a part of the Blue Line that runs underground. She can hear virtually no
+            noise from the train, but it also takes about 10 minutes to walk from her home to the nearest Blue Line
+            stop.</p>
 
-        <p>“I don’t want them to be afraid of it,” Trumbo said, “and I want them to be familiar with it and feel comfortable with it.”</p>
+        <p>This distance means Trumbo is on the other side of the train tax curve from Moring; she saves on her
+            monthly housing cost by sacrificing some of the accessibility afforded by living further from the train,
+            rather than by putting up with the higher noise that comes with living closer to the train.</p>
 
-        <p>After Trumbo and her husband had their third child, they decided to upsize from their current 2-bedroom condo on the 1500 block of W. Walton. Still on their list of priorities in the home search was transit accessibility, but Trumbo was no longer looking for a unit as close as her first Chicago apartment.</p>
+        <p>Despite her choice, Trumbo said it’s still important to her that her children grow up experiencing the
+            city and feeling comfortable on public transportation.</p>
 
+        <p>“I don’t want them to be afraid of it,” she said, “and I want them to be familiar with it and feel
+            comfortable with it.”</p>
+
+        <p>Like Trumbo, Anshu Tirumali wants his child to be comfortable riding the train when they’re older. And,
+            like Moring, Tirumali was willing to adapt to a louder environment in order to get savings on his
+            monthly housing bill.</p>
+
+        <p>Tirumali and his family live in a single family home on a block of W Argyle St in Chicago’s Jefferson
+            Park neighborhood.</p>
+
+        <p>Tirumali’s home is less than 200 feet from Interstate 90, one of the main highways that passes through
+            downtown Chicago.</p>
+
+        <p>In addition to the noise from cars and trucks on the highway, Tirumali can frequently hear the Blue line
+            as it passes through the highway’s median.</p>
+
+        <p>Also nearby, a Metra commuter rail line has a stop just at the end of his block, before it crosses both
+            I-90 and the Blue line and continues into the city.</p>
+
+        <p>“We were looking for something that was within our budget that still met these requirements,” Tirumali
+            said. “And so the sacrifice that we made was the proximity to noise sources.”</p>
+
+        <p>Despite all the noise, Tirumali was happy with the decision he and his wife made.</p>
+
+        <p>Jackson Starr fell in love with Chicago while visiting some friends who moved to the city for college.
+            In 2018, after he’d moved around the country to follow work opportunities, he finally had the chance to
+            move first and “make it work from there,” Starr said, and he chose Chicago.</p>
+
+        <p>As with many other people who move to Chicago, a big benefit to Starr was the L system.</p>
+
+        <p>Starr, 33, works as an IT technician for an investment company in River North – a neighborhood just
+            across the Chicago River from the loop. He commutes to work from Albany Park on the Brown line and
+            loves how convenient it is.</p>
+
+        <p>Though he can only hear the trains a little bit from his current apartment, he’s been in others around
+            the city that are much closer to the train. One of his friends, he recounted, lives just feet from the
+            Belmont stop on Chicago’s north side. He’s been over for drinks a few times and loved the urban feeling
+            of the train going by.</p>
+
+        <p>“It was just immaculate vibes,” Starr described. “It was immaculate city vibes. And I don’t remember
+            noise really being a factor.”</p>
+
+        <p>Further, Starr explained, he is particularly annoyed when he overhears people complaining about noise
+            from the train in Chicago. While there might be some exceptions, like if a particularly old building is
+            next to an older section of the track, he says Chicagoans should know what they’re in for when they
+            choose to live in a city.</p>
+
+        <p>“I’m not a big church guy,” Starr said. “But if I move next door to a church, I’m not gonna complain
+            about early morning Sunday service and bells.”</p>
     </section>
 
     <!-- ================================================================
@@ -816,9 +922,15 @@
             <div class="ramp"></div>
             <div class="ticks"></div>
             <div class="scope"></div>
-            <div class="legend-key-row">
-                <span class="legend-key-swatch" style="background:#e8302a"></span>
-                <span>CTA rail system</span>
+            <div class="legend-key-group">
+                <div class="legend-key-row">
+                    <span class="legend-key-swatch"></span>
+                    <span>CTA lines, colored by route</span>
+                </div>
+                <div class="legend-key-row">
+                    <span class="legend-key-swatch legend-key-swatch--dashed"></span>
+                    <span>Underground segment</span>
+                </div>
             </div>
         </div>
 
@@ -845,79 +957,143 @@
         // ([longitude, latitude]) and zoom, plus:
         //   - card: 'none' (no step card at all -- just the map),
         //     'text' (title + paragraph), or 'image' (photo + caption).
-        //   - highlight: null, 'building' (spotlights the one building at
-        //     SPOTLIGHT_BUILDING_ID, everything else stays gray), or
-        //     'lines' (spotlights every CTA line segment).
-        // Steps 3-5 deliberately repeat the same center/zoom as step 2 --
-        // the camera holds still while the highlight changes underneath it.
+        //   - highlight: null (every line normal), 'all' (every line bold --
+        //     e.g. "5 lines share this junction"), or a specific
+        //     CTA_LINE_COLORS key like 'Red' (that line bolded, every other
+        //     line faded down) -- see setLineEmphasis in setupMapLayers.
+        //   - pins: 0-2 [longitude, latitude] points to drop a marker on for
+        //     this step (initScrollyTour keeps a small reusable marker pool,
+        //     added/removed/repositioned per step -- not tied to any one
+        //     building's real geometry, unlike the old spotlight approach,
+        //     so it can point at a specific address OR a whole neighborhood).
+        //   - showNoiseLegend: whether the mini gray->red noise-color key
+        //     shows on this step -- off for the opening city-wide shot
+        //     (nothing to key yet, individual buildings don't render below
+        //     the buildings layer's own minzoom), on everywhere else, since
+        //     every other step is zoomed in close enough for buildings to
+        //     show their real per-building noise color (see LEVELS above --
+        //     no grayscaleBuildingColor override on this map anymore, unlike
+        //     the previous version of this tour: every building always shows
+        //     its real color as soon as it's in view, the same as the
+        //     explore map at the bottom of the page).
+        // Many steps deliberately repeat the same center/zoom as the one
+        // before -- the camera holds still while pins/highlight change
+        // underneath it.
         // ============================================================
         const STORY_STEPS = [
             {
-                // Opening shot: the whole city, CTA lines only. No card --
-                // this is the resting state, not a narrated beat.
+                // Opening shot: the whole city, Red line bolded, pins on the
+                // two neighborhoods Moring and his partner compared.
                 center: [-87.6298, 41.8781],
                 zoom: 10.5,
-                card: 'none',
-                highlight: null
+                card: 'text',
+                title: 'A walk on the North Side',
+                text: 'Moring and his partner walked from Edgewater to Lincoln Park to get a feel for various neighborhoods on the city’s north side. All along their route they could hear the L’s persistent noise.',
+                pins: [[-87.664, 41.9834], [-87.6392, 41.9325]],
+                highlight: 'Red',
+                showNoiseLegend: false
             },
             {
-                // Zoom into one neighborhood. Individual buildings fade in
-                // (still plain gray -- see grayscaleBuildingColor below) as
-                // the camera crosses the buildings layer's own minzoom
-                // during the flight; nothing to configure here for that,
-                // it's the same fade every other zoom level already uses.
-                center: [-87.636564, 41.886142],
-                zoom: 15.87,
-                card: 'none',
-                highlight: null
+                // Zoom to Edgewater -- no pin yet, just the neighborhood and
+                // its real building colors fading in.
+                center: [-87.6633, 41.9888],
+                zoom: 15.9,
+                card: 'text',
+                title: 'Edgewater',
+                text: 'In Edgewater, a largely residential neighborhood on the city’s north side, the elevated tracks run above an alley and are used by the Red Line every day and the Purple Line during peak weekday hours.',
+                pins: [],
+                highlight: 'Red',
+                showNoiseLegend: true
             },
             {
-                // Same view, spotlight one building in its real (eventual)
-                // noise color -- a preview of what the full-color view
-                // (see the explore map at the bottom of the page) looks like.
+                // Same view, pin the specific building.
+                center: [-87.6633, 41.9888],
+                zoom: 15.9,
+                card: 'text',
+                title: '1315 W. Rosedale Ave.',
+                text: 'If Moring and his partner chose to live here, at 1315 W Rosedale, they would be about 1,200 feet from the L tracks. And every time the train passes it would sound about 70dB loud at their home (a similar volume to being in the same room as a washing machine).',
+                pins: [[-87.6633384, 41.9887659]],
+                highlight: 'Red',
+                showNoiseLegend: true
+            },
+            {
+                // Same view/pin, the daily noise-exposure number.
+                center: [-87.6633, 41.9888],
+                zoom: 15.9,
+                card: 'text',
+                title: '97,000',
+                text: 'Trains run on this section of the tracks about 480 times every day. Taking into account other factors, like sound coming from multiple directions as the train passes the building, this building has a daily noise exposure value of about 97,000.',
+                pins: [[-87.6633384, 41.9887659]],
+                highlight: 'Red',
+                showNoiseLegend: true
+            },
+            {
+                // Zoom to Lincoln Park, pin the comparison building.
+                center: [-87.6476, 41.9195],
+                zoom: 15.9,
+                card: 'text',
+                title: '2042 N. Burling St.',
+                text: 'Or, Moring and his partner could live here, at 2042 N Burling St., in the trendy Lincoln Park neighborhood. It’s a similar 1,200 feet-or-so from the nearest CTA tracks (which are used by the Red, Purple and Brown lines).',
+                pins: [[-87.6476453, 41.9194765]],
+                highlight: null,
+                showNoiseLegend: true
+            },
+            {
+                // Same view/pin, the daily noise-exposure number.
+                center: [-87.6476, 41.9195],
+                zoom: 15.9,
+                card: 'text',
+                title: '160,000',
+                text: 'Just like the Edgewater property, every time the train passes by this home on Burling it would generate about 70dB of sound. But, thanks to the addition of the Brown Line traffic, this section of tracks sees about 800 daily train trips – nearly double what it was in Edgewater. This means that, taking into account noise coming from multiple directions, this Burling property has a daily noise exposure value of over 160,000.',
+                pins: [[-87.6476453, 41.9194765]],
+                highlight: null,
+                showNoiseLegend: true
+            },
+            {
+                // Zoom out to fit the Loop -- no pin, lines untouched.
+                center: [-87.6294, 41.8823],
+                zoom: 14.4,
+                card: 'text',
+                title: 'Back to the Loop',
+                text: 'Ultimately, though, Moring found a place in the Loop – not on the North side – that met all their criteria. It fit their budget, too.',
+                pins: [],
+                highlight: null,
+                showNoiseLegend: true
+            },
+            {
+                // Zoom to Moring's actual building/junction, pin it.
                 center: [-87.636564, 41.886142],
                 zoom: 15.87,
                 card: 'text',
-                title: 'EDIT ME: Why this building',
-                text: 'EDIT ME: a sentence or two about the highlighted building -- how loud it gets and why.',
-                highlight: 'building'
+                title: '215 W. Lake St.',
+                text: 'They live in this building, at 215 W Lake St., in the Loop. Their unit overlooks one of the busiest junctions in the entire L system, part of the path of five different L lines.',
+                pins: [[-87.636564, 41.886142]],
+                highlight: null,
+                showNoiseLegend: true
             },
             {
-                // Same view, swap the building spotlight for the tracks.
+                // Same view/pin, highlight every line through the junction.
                 center: [-87.636564, 41.886142],
                 zoom: 15.87,
                 card: 'text',
-                title: 'EDIT ME: The line running past it',
-                text: 'EDIT ME: a sentence or two about which CTA line(s) run through this view and how often.',
-                highlight: 'lines'
+                title: 'A thousand trains a day',
+                text: 'Almost a thousand total trains pass through this junction every single day. At peak times, trains run through every 45-60 seconds.',
+                pins: [[-87.636564, 41.886142]],
+                highlight: 'all',
+                showNoiseLegend: true
             },
             {
-                // Same view again, a photo instead of a text card. highlight
-                // carries the track spotlight over from step 4 -- change to
-                // null here if you'd rather this beat had no highlight.
+                // Same view/pin/highlight, the daily noise-exposure number.
                 center: [-87.636564, 41.886142],
                 zoom: 15.87,
-                card: 'image',
-                image: {
-                    src: 'imgs/EDIT-ME.jpg',
-                    alt: 'EDIT ME: describe the photo',
-                    caption: 'EDIT ME: caption / credit.'
-                },
-                highlight: 'lines'
+                card: 'text',
+                title: 'Almost 250,000',
+                text: 'Taking into account how close Moring is to the tracks – about 50 feet to the nearest tracks and 200 feet to the rail junction – and the high frequency of trains that pass by every day, Moring’s building has a daily noise exposure value of almost 250,000, among the highest estimated noise value of any residential building in the city.',
+                pins: [[-87.636564, 41.886142]],
+                highlight: 'all',
+                showNoiseLegend: true
             }
         ];
-
-        // The one building spotlighted by STORY_STEPS' step 3 (highlight:
-        // 'building') -- id 502947 in nb3_buildings_coded.geojson /
-        // coded_bldgs.pmtiles, found by point-in-polygon lookup for
-        // (41.8854464, -87.6346072), the coordinate used to identify it.
-        // If you change which building step 3 points at, re-run that same
-        // lookup against nb3_buildings_4326.geojsonl for the new id.
-        const SPOTLIGHT_BUILDING_ID = 502947;
-
-        // Plain, "no data yet" gray for every building except the one
-        // spotlighted by step 3 -- see grayscaleBuildingColor below.
-        const BUILDING_GRAYSCALE_COLOR = '#4a4744';
 
         // Register the pmtiles:// protocol so MapLibre can read the .pmtiles
         // archive directly over HTTP range requests (no tile server needed).
@@ -973,6 +1149,23 @@
         // 16 steps (rather than a smaller palette) spreads the transition
         // across more, smaller color jumps for a more gradual look.
         const COLOR_STEPS = ['#27272a', '#31292b', '#3a2b2c', '#432c2c', '#4d2d2d', '#562f2d', '#5f2f2e', '#69302e', '#72312e', '#7c312e', '#85312e', '#8f302e', '#98302d', '#a22e2d', '#ac2d2c', '#b62b2b'];
+
+        // Real CTA route colors, used to render each cta_lines segment as one
+        // thin strand per line it actually carries (see the per-line layers
+        // in setupMapLayers below) rather than one uniform red stroke --
+        // where several lines share a stretch of track (e.g. Brown/Purple/Red
+        // on the North Side), each still shows as its own colored strand,
+        // offset just enough to sit side by side.
+        const CTA_LINE_COLORS = {
+            Red: '#c60c30',
+            Blue: '#00a1de',
+            Brown: '#62361b',
+            Green: '#009b3a',
+            Orange: '#f9461c',
+            Pink: '#e27ea6',
+            Purple: '#522398',
+            Yellow: '#f9e300'
+        };
 
         // Five levels of detail, evenly spaced 2 zoom levels apart: four
         // square-grid averages (300m / 120m / 45m / 18m cells, coarsest to
@@ -1093,25 +1286,20 @@
         //     those levels' own zoom ranges DO cover the step 1 city-wide
         //     overview, so left unhidden they'd show aggregated color data
         //     there when only CTA lines should be visible). The explore map
-        //     passes none -- everything's available as you zoom.
-        //   - grayscaleBuildingColor + spotlightBuildingId: if set, the
-        //     buildings layer ignores its real per-building color and
-        //     paints this flat gray instead, EXCEPT for spotlightBuildingId
-        //     when its feature-state 'spotlight' is true -- see
-        //     setBuildingSpotlight, passed to onReady. The scrolly map uses
-        //     this so buildings appear un-color-coded until step 3
-        //     spotlights one as a preview; the explore map omits both
-        //     options and always shows every building's real color.
+        //     passes none -- everything's available as you zoom, and the
+        //     scrolly map's own tour never zooms out far enough to need
+        //     them either -- every building always shows its real
+        //     per-building noise color as soon as it's in view, on both maps.
         //   - legendEl/tooltipEl/drawerEl: omit all three (as the scrolly
         //     map does) to skip hover/legend entirely -- this project's
         //     guided tour is meant to be watched, not poked at; that's what
         //     the explore map at the bottom of the page is for.
-        // Calls onReady({ setBuildingSpotlight, setLinesSpotlight }) once
-        // everything's added, for the scrolly-specific step logic that
-        // triggers those spotlights -- harmless to ignore if unused.
+        // Calls onReady({ setLineEmphasis }) once everything's added, for
+        // the scrolly-specific step logic that drives it -- harmless to
+        // ignore if unused.
         function setupMapLayers(mapInstance, {
             legendEl = null, tooltipEl = null, drawerEl = null,
-            hiddenLevelIds = [], grayscaleBuildingColor = null, spotlightBuildingId = null
+            hiddenLevelIds = []
         }, onReady) {
             mapInstance.on('load', () => {
                 // The CARTO basemap ships its own generic OSM building
@@ -1203,16 +1391,6 @@
                 for (const level of LEVELS) {
                     const hidden = hiddenLevelIds.includes(level.id);
 
-                    // Only the buildings level ever gets grayscaleBuildingColor --
-                    // everything else keeps its normal per-feature color always.
-                    // When set, this "case" wraps the real interpolate expression
-                    // so the ONE feature with feature-state.spotlight = true (see
-                    // setBuildingSpotlight below) still shows its true color while
-                    // every other feature falls back to the flat gray.
-                    const fillColor = (level.id === 'buildings' && grayscaleBuildingColor)
-                        ? ['case', ['boolean', ['feature-state', 'spotlight'], false], colorRamp(level), grayscaleBuildingColor]
-                        : colorRamp(level);
-
                     mapInstance.addLayer({
                         id: `${level.id}-fill`,
                         type: 'fill',
@@ -1222,7 +1400,7 @@
                         maxzoom: level.maxzoom,
                         layout: { visibility: hidden ? 'none' : 'visible' },
                         paint: {
-                            'fill-color': fillColor,
+                            'fill-color': colorRamp(level),
                             'fill-opacity': fadeOpacity(level)
                         }
                     });
@@ -1276,45 +1454,94 @@
                     generateId: true
                 });
 
-                // A dark casing under the colored line, wider than it, so the line
-                // reads clearly against both the light-green and dark-blue ends of
-                // the building color ramp.
+                // A dark casing under the colored line(s), wider than the
+                // spread of per-line strands below on THAT segment -- sized
+                // per-feature from how many lines it actually carries
+                // (cta_lines' 'lines' property), not a flat width. A solo
+                // Green or Orange segment elsewhere in the system only needs
+                // to cover its one thin strand; only a segment like the
+                // 5-line Brown/Green/Orange/Pink/Purple bundle near the Loop
+                // needs the full-width casing. The per-index spacing here
+                // (1.5 at zoom 8, 5 at zoom 16) matches the offset math in
+                // the per-line layers below so the casing's edges land just
+                // past the outermost strand at any zoom.
+                const casingGroupSpread = ['-', ['length', ['get', 'lines']], 1];
                 mapInstance.addLayer({
                     id: 'cta-lines-casing',
                     type: 'line',
                     source: 'cta_lines',
                     paint: {
                         'line-color': '#0b1a33',
-                        'line-width': ['interpolate', ['linear'], ['zoom'], 8, 2.5, 16, 6],
+                        'line-width': ['interpolate', ['linear'], ['zoom'],
+                            8, ['+', ['*', casingGroupSpread, 1.5], 3],
+                            16, ['+', ['*', casingGroupSpread, 5], 7]],
                         'line-opacity': 0.9
                     }
                 });
-                // A soft accent-colored glow, under the crisp colored line so it
-                // doesn't obscure it, that appears only when feature-state
-                // 'tourSpotlight' is set -- see setLinesSpotlight below, driven by
-                // STORY_STEPS' highlight: 'lines' (step 4). Distinct from
-                // cta-lines-hover (mouse-driven, thin white) since this needs to
-                // stay on for an entire step rather than flash on momentary hover.
-                mapInstance.addLayer({
-                    id: 'cta-lines-spotlight',
-                    type: 'line',
-                    source: 'cta_lines',
-                    paint: {
-                        'line-color': '#ff5a3c',
-                        'line-width': ['case', ['boolean', ['feature-state', 'tourSpotlight'], false], 14, 0],
-                        'line-opacity': 0.55,
-                        'line-blur': 3
-                    }
-                });
-                mapInstance.addLayer({
-                    id: 'cta-lines-fill',
-                    type: 'line',
-                    source: 'cta_lines',
-                    paint: {
-                        'line-color': '#e8302a',
-                        'line-width': ['interpolate', ['linear'], ['zoom'], 8, 1.2, 16, 3.5]
-                    }
-                });
+                // One pair of layers per real CTA line (solid + dashed-
+                // underground), each filtered to only the segments that
+                // actually carry it (cta_lines' 'lines' property lists every
+                // line sharing that stretch of track) and offset sideways by
+                // its position within that segment's group -- so a segment
+                // shared by, say, Brown/Purple/Red renders as three thin
+                // parallel strands instead of one blended color, while a
+                // solo segment's single strand sits centered (offset 0).
+                // Width/opacity start at their normal values and are the
+                // knobs setLineEmphasis (below) turns per tour step -- a
+                // line being called out gets wider, everything else fades
+                // back, instead of drawing a separate colored glow behind
+                // the lines (which read as a flat highlight-colored wash
+                // once every line already had its own real color).
+                const STRAND_WIDTH_NORMAL = ['interpolate', ['linear'], ['zoom'], 8, 1, 16, 3];
+                const STRAND_WIDTH_BOLD = ['interpolate', ['linear'], ['zoom'], 8, 2, 16, 5.5];
+                const SUBWAY_WIDTH_NORMAL = ['interpolate', ['linear'], ['zoom'], 8, 0.8, 16, 2.2];
+                const SUBWAY_WIDTH_BOLD = ['interpolate', ['linear'], ['zoom'], 8, 1.4, 16, 3.8];
+                const SUBWAY_OPACITY_NORMAL = 0.75;
+                const DIM_OPACITY = 0.18;
+                for (const [lineName, color] of Object.entries(CTA_LINE_COLORS)) {
+                    const carriesLine = ['in', lineName, ['get', 'lines']];
+                    const groupSize = ['length', ['get', 'lines']];
+                    const indexInGroup = ['index-of', lineName, ['get', 'lines']];
+                    // How far this strand sits from center, as a multiple of
+                    // zoom-scaled spacing -- a zoom expression can only
+                    // appear as the top-level input to interpolate/step, so
+                    // the data-driven part (dataFactor) has to live inside
+                    // this interpolate's stops rather than multiply it from
+                    // outside.
+                    const dataFactor = ['-', indexInGroup, ['/', ['-', groupSize, 1], 2]];
+                    const offset = ['interpolate', ['linear'], ['zoom'],
+                        8, ['*', dataFactor, 1.5],
+                        16, ['*', dataFactor, 5]];
+
+                    mapInstance.addLayer({
+                        id: `cta-line-${lineName.toLowerCase()}`,
+                        type: 'line',
+                        source: 'cta_lines',
+                        filter: ['all', carriesLine, ['!=', ['get', 'segment_type'], 'subway']],
+                        paint: {
+                            'line-color': color,
+                            'line-width': STRAND_WIDTH_NORMAL,
+                            'line-offset': offset
+                        }
+                    });
+                    // This line's underground stretches -- dashed and a
+                    // touch thinner/dimmer than its above-ground strand,
+                    // since these portions aren't actually visible in the
+                    // city.
+                    mapInstance.addLayer({
+                        id: `cta-line-${lineName.toLowerCase()}-subway`,
+                        type: 'line',
+                        source: 'cta_lines',
+                        filter: ['all', carriesLine, ['==', ['get', 'segment_type'], 'subway']],
+                        paint: {
+                            'line-color': color,
+                            'line-width': SUBWAY_WIDTH_NORMAL,
+                            'line-offset': offset,
+                            'line-opacity': SUBWAY_OPACITY_NORMAL,
+                            'line-dasharray': [2, 1.5]
+                        }
+                    });
+                }
                 // A bright outline that appears ONLY on the hovered segment.
                 mapInstance.addLayer({
                     id: 'cta-lines-hover',
@@ -1327,29 +1554,24 @@
                     }
                 });
 
-                // Every currently-loaded cta_lines feature id, captured once the
-                // source finishes loading -- used by setLinesSpotlight below to set
-                // feature-state on all 23 segments at once. There's no natural
-                // unique id in the source data (hence generateId above), so this is
-                // the only way to enumerate them.
-                let ctaLineIds = [];
-                const captureCtaLineIds = (e) => {
-                    if (e.sourceId !== 'cta_lines' || !mapInstance.isSourceLoaded('cta_lines')) return;
-                    ctaLineIds = mapInstance.querySourceFeatures('cta_lines').map((f) => f.id);
-                };
-                mapInstance.on('sourcedata', captureCtaLineIds);
-
-                function setBuildingSpotlight(on) {
-                    if (spotlightBuildingId == null) return;
-                    mapInstance.setFeatureState(
-                        { source: 'buildings', sourceLayer: 'buildings', id: spotlightBuildingId },
-                        { spotlight: on }
-                    );
-                }
-
-                function setLinesSpotlight(on) {
-                    for (const id of ctaLineIds) {
-                        mapInstance.setFeatureState({ source: 'cta_lines', id }, { tourSpotlight: on });
+                // Called per tour step with target = null (no emphasis, every
+                // line at normal width/opacity), 'all' (every line bold, none
+                // dimmed -- e.g. "5 lines share this junction"), or a specific
+                // CTA_LINE_COLORS key like 'Blue' (that line bolded, every
+                // other line faded down so it reads as the one being talked
+                // about). Operates on the per-line layers' paint properties
+                // directly rather than feature-state, since emphasis here is
+                // "which named line" rather than "which individual feature".
+                function setLineEmphasis(target) {
+                    for (const lineName of Object.keys(CTA_LINE_COLORS)) {
+                        const isBold = target === 'all' || target === lineName;
+                        const isDimmed = target != null && !isBold;
+                        const solidId = `cta-line-${lineName.toLowerCase()}`;
+                        const subwayId = `${solidId}-subway`;
+                        mapInstance.setPaintProperty(solidId, 'line-width', isBold ? STRAND_WIDTH_BOLD : STRAND_WIDTH_NORMAL);
+                        mapInstance.setPaintProperty(solidId, 'line-opacity', isDimmed ? DIM_OPACITY : 1);
+                        mapInstance.setPaintProperty(subwayId, 'line-width', isBold ? SUBWAY_WIDTH_BOLD : SUBWAY_WIDTH_NORMAL);
+                        mapInstance.setPaintProperty(subwayId, 'line-opacity', isDimmed ? DIM_OPACITY : SUBWAY_OPACITY_NORMAL);
                     }
                 }
 
@@ -1358,7 +1580,7 @@
                 // meant to be poked at -- see setupMapLayers' doc comment above),
                 // while the explore map always passes all three.
                 if (!tooltipEl || !drawerEl || !legendEl) {
-                    if (onReady) onReady({ setBuildingSpotlight, setLinesSpotlight });
+                    if (onReady) onReady({ setLineEmphasis });
                     return;
                 }
 
@@ -1493,32 +1715,37 @@
                 mapInstance.on('zoom', updateLegend);
                 updateLegend();
 
-                if (onReady) onReady({ setBuildingSpotlight, setLinesSpotlight });
+                if (onReady) onReady({ setLineEmphasis });
             });
         }
 
-        setupMapLayers(map, {
-            hiddenLevelIds: ['grid300', 'grid120', 'grid45', 'grid18'],
-            grayscaleBuildingColor: BUILDING_GRAYSCALE_COLOR,
-            spotlightBuildingId: SPOTLIGHT_BUILDING_ID
-        }, ({ setBuildingSpotlight, setLinesSpotlight }) => {
-            // ========================================================
-            // SCROLLYTELLING -- render STORY_STEPS into .scrolly-steps,
-            // then watch each one with IntersectionObserver so the map
-            // flies to a new step (and updates its spotlight) as it
-            // crosses the middle of the viewport. See EDIT-STEPS above
-            // to change the tour itself; nothing here needs to change
-            // for that.
-            // ========================================================
-            const stepsContainer = document.getElementById('scrolly-steps');
-            const stickyEl = document.getElementById('scrolly-sticky');
+        // Renders `steps` into #<stepsContainerId>, then watches each one
+        // with IntersectionObserver so `mapInstance` flies to a new step
+        // (and applyHighlight(step.highlight) runs) as it crosses the
+        // middle of the viewport -- shared by both scrollytelling sections
+        // on this page. To change the tour, edit STORY_STEPS above; this
+        // function doesn't need to change for that.
+        function initScrollyTour({ steps, mapInstance, stepsContainerId, stickyId, applyHighlight, pinColor, noiseLegendEl }) {
+            const stepsContainer = document.getElementById(stepsContainerId);
+            const stickyEl = document.getElementById(stickyId);
 
-            STORY_STEPS.forEach((step, i) => {
+            // A small reusable pool of markers for step.pins -- lazily
+            // created (at most 2 needed, for the opening city-wide shot's
+            // two neighborhoods; every other step uses 0 or 1) and just
+            // repositioned/added/removed per step rather than recreated,
+            // so there's no marker churn as the reader scrolls.
+            const markerPool = [];
+            function markerAt(i) {
+                if (!markerPool[i]) markerPool[i] = new maplibregl.Marker({ color: pinColor || '#ff5a3c' });
+                return markerPool[i];
+            }
+
+            steps.forEach((step, i) => {
                 const el = document.createElement('div');
                 el.className = 'step step-tour';
                 el.dataset.index = String(i);
 
-                const indexLabel = `${String(i + 1).padStart(2, '0')} / ${String(STORY_STEPS.length).padStart(2, '0')}`;
+                const indexLabel = `${String(i + 1).padStart(2, '0')} / ${String(steps.length).padStart(2, '0')}`;
                 if (step.card === 'text') {
                     el.innerHTML = `
                         <div class="step-card">
@@ -1527,10 +1754,11 @@
                             <p>${step.text}</p>
                         </div>`;
                 } else if (step.card === 'image') {
-                    // EDIT ME (in STORY_STEPS above): once step.image.src points
-                    // at a real file, this renders it directly -- no separate
-                    // placeholder markup to swap out, unlike the intro/outro
-                    // photo blocks, since this one's built from data already.
+                    // EDIT ME (in STORY_STEPS above): once
+                    // step.image.src points at a real file, this renders it
+                    // directly -- no separate placeholder markup to swap out,
+                    // unlike the intro/outro photo blocks, since this one's
+                    // built from data already.
                     el.innerHTML = `
                         <div class="step-card step-card-image">
                             <p class="step-index">${indexLabel}</p>
@@ -1542,7 +1770,7 @@
                         </div>`;
                 }
                 // card === 'none': el stays empty -- just the 100vh scroll
-                // spacer, no card, matching STORY_STEPS steps 1 and 2.
+                // spacer, no card.
                 stepsContainer.appendChild(el);
             });
 
@@ -1550,15 +1778,22 @@
             let activeStepIndex = -1;
 
             function goToStep(i) {
-                const step = STORY_STEPS[i];
-                map.flyTo({ center: step.center, zoom: step.zoom, essential: true, duration: 1200 });
-                setBuildingSpotlight(step.highlight === 'building');
-                setLinesSpotlight(step.highlight === 'lines');
+                const step = steps[i];
+                mapInstance.flyTo({ center: step.center, zoom: step.zoom, essential: true, duration: 1200 });
+                applyHighlight(step.highlight);
+
+                const pins = step.pins || [];
+                for (let p = 0; p < 2; p++) {
+                    if (pins[p]) markerAt(p).setLngLat(pins[p]).addTo(mapInstance);
+                    else if (markerPool[p]) markerPool[p].remove();
+                }
+                if (noiseLegendEl) noiseLegendEl.classList.toggle('is-visible', !!step.showNoiseLegend);
+
                 // Step 1 (i === 0) is the resting/opening state -- its own
                 // scroll-cue stays visible there and nowhere else. Toggling
                 // (not just adding) this class is what lets scrolling back UP
                 // to step 1 restore the opening view instead of getting stuck
-                // whever the reader scrolled down to: since goToStep fires
+                // wherever the reader scrolled down to: since goToStep fires
                 // again on re-entering step 1, the map flies back out too.
                 stickyEl.classList.toggle('is-engaged', i !== 0);
             }
@@ -1582,6 +1817,20 @@
             }, { threshold: 0.6 });
 
             stepEls.forEach((el) => stepObserver.observe(el));
+        }
+
+        setupMapLayers(map, {
+            hiddenLevelIds: ['grid300', 'grid120', 'grid45', 'grid18']
+        }, ({ setLineEmphasis }) => {
+            initScrollyTour({
+                steps: STORY_STEPS,
+                mapInstance: map,
+                stepsContainerId: 'scrolly-steps',
+                stickyId: 'scrolly-sticky',
+                applyHighlight: (highlight) => setLineEmphasis(highlight),
+                pinColor: '#ff5a3c',
+                noiseLegendEl: document.getElementById('scrolly-noise-legend')
+            });
         });
 
         setupMapLayers(exploreMap, {
