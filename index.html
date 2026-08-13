@@ -251,6 +251,17 @@
             line-height: 1.4;
         }
 
+        /* Small non-interactive maps dropped into the outro as a visual
+           break -- same 3:2 frame as .story-photo-placeholder so both kinds
+           of figure read consistently in the column, but rendered live by
+           MapLibre (see the STATIC_MAPS block in <script>) rather than a
+           static image file. */
+        .static-map {
+            width: 100%;
+            aspect-ratio: 3 / 2;
+            border: 1px solid var(--paper-rule);
+        }
+
         .story-footer {
             max-width: var(--col-max);
             margin: 0 auto;
@@ -328,29 +339,12 @@
             transform: translateY(0);
         }
 
-        .step-index {
-            font-family: var(--sans-ui);
-            font-size: 11px;
-            font-weight: 700;
-            letter-spacing: 0.14em;
-            color: var(--accent);
-            margin: 0 0 10px;
-        }
-
-        .step-card h3 {
-            font-family: var(--serif-display);
-            font-weight: 700;
-            font-size: 1.15rem;
-            line-height: 1.25;
-            margin: 0 0 12px;
-        }
-
         .step-card p {
             font-family: var(--serif-text);
             font-size: 0.92rem;
             line-height: 1.55;
             margin: 0;
-            color: var(--ink-muted);
+            color: var(--ink);
         }
 
         /* Step 5's card (see STORY_STEPS' card: 'image') -- same shell as
@@ -449,6 +443,25 @@
             }
         }
 
+        /* The text label paired with each scrolly-map pin drop (see
+           initScrollyTour's labelAt) -- the neighborhood name on the
+           opening city-wide shot, the street address once a step zooms
+           into a specific building. A plain positioned div rather than a
+           MapLibre Popup, since a popup's bubble-with-pointer chrome reads
+           as something clickable/dismissable, not a permanent map label. */
+        .pin-label {
+            background: var(--surface);
+            border: 1px solid var(--paper-rule);
+            color: var(--ink);
+            font-family: var(--sans-ui);
+            font-size: 12px;
+            font-weight: 600;
+            padding: 3px 8px;
+            border-radius: 3px;
+            white-space: nowrap;
+            pointer-events: none;
+        }
+
         /* ================================================================
            MAP CHROME -- legend / tooltip / drawer. Classes, not ids, since
            both the scrolly map and the free-roam explore map at the bottom
@@ -532,6 +545,28 @@
             border-top: 1px solid var(--paper-rule);
         }
 
+        /* Default map-legend position is bottom-right (see .map-legend
+           above) -- the scrolly map's noise-color key sits at bottom-left
+           instead, once it's not sharing a box with the CTA-line key (see
+           the noise-mini-legend markup and its own doc comment below). */
+        .map-legend--bottom-left {
+            left: 12px;
+            right: auto;
+        }
+
+        /* Centered title above the noise-color ramp -- shared by both the
+           floating map key (.noise-mini-legend) and the version shown
+           inline in step 2's card the first time the key appears (see
+           .step-card-noise-legend further down). */
+        .legend-title {
+            text-align: center;
+            font-family: var(--sans-ui);
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--accent);
+            margin-bottom: 6px;
+        }
+
         /* The scrolly map's version has no scope label and only a fixed
            2-stop ramp (see .noise-mini-legend below) rather than the full
            legend's quantile ramp, so it doesn't need the full legend's
@@ -558,6 +593,31 @@
         .noise-mini-legend .ticks {
             flex-wrap: wrap;
             gap: 2px 10px;
+        }
+
+        /* The version of the same ramp+ticks shown inline inside step 2's
+           card the first time the key appears (see STORY_STEPS'
+           inlineNoiseLegend and initScrollyTour below) -- no floating-panel
+           background/border here since it's already inside the card, just
+           a rule to separate it from the paragraph above. */
+        .step-card-noise-legend {
+            margin-top: 18px;
+            padding-top: 16px;
+            border-top: 1px solid var(--paper-rule);
+        }
+
+        .step-card-noise-legend .ramp {
+            height: 12px;
+            border-radius: 2px;
+            margin-bottom: 4px;
+        }
+
+        .step-card-noise-legend .ticks {
+            display: flex;
+            justify-content: space-between;
+            font-family: var(--sans-ui);
+            font-size: 10px;
+            color: var(--ink-muted);
         }
 
         /* On narrow screens the step card takes over the bottom of the
@@ -760,18 +820,24 @@
                         <span>Underground segment</span>
                     </div>
                 </div>
+            </div>
 
-                <!-- Hidden until STORY_STEPS' step.showNoiseLegend is true
-                     (once the tour zooms in close enough for individual
-                     buildings to actually show real noise color -- there's
-                     nothing to key on the opening city-wide shot) -- toggled
-                     by initScrollyTour below. -->
-                <div class="legend-key-group noise-mini-legend" id="scrolly-noise-legend">
-                    <div class="ramp" style="background: linear-gradient(to right, #27272a, #b62b2b);"></div>
-                    <div class="ticks">
-                        <span>Less daily noise from train</span>
-                        <span>More daily noise from train</span>
-                    </div>
+            <!-- Hidden until STORY_STEPS' step.showNoiseLegend is true (once
+                 the tour zooms in close enough for individual buildings to
+                 actually show real noise color -- there's nothing to key on
+                 the opening city-wide shot, and step 2 shows this same key
+                 inline in its own card instead, see .step-card-noise-legend
+                 and initScrollyTour) -- toggled by initScrollyTour below.
+                 A standalone box (not nested in the CTA-line key above) so
+                 it can sit at bottom-left while the CTA key stays at the
+                 default bottom-right. -->
+            <div class="map-legend map-legend-mini map-legend--bottom-left legend-key-group noise-mini-legend"
+                id="scrolly-noise-legend">
+                <div class="legend-title">Daily Train Noise</div>
+                <div class="ramp" style="background: linear-gradient(to right, #27272a, #b62b2b);"></div>
+                <div class="ticks">
+                    <span>Less Train Noise</span>
+                    <span>More Train Noise</span>
                 </div>
             </div>
 
@@ -832,6 +898,10 @@
             they still wanted the accessibility of being near the L, they prioritized being in a quieter, more
             family friendly area as they planned for their future.</p>
 
+        <figure class="story-photo">
+            <div id="static-map-trumbo" class="static-map"></div>
+        </figure>
+
         <p>They now have three kids all under seven-years-old, and Trumbo commutes to the northern suburbs for her
             work. It’s far more convenient, she explained, to just take their minivan around the city when they need
             to, and to not have to worry about bringing their young kids and strollers onto the train.</p>
@@ -856,6 +926,10 @@
 
         <p>Tirumali and his family live in a single family home on a block of W Argyle St in Chicago’s Jefferson
             Park neighborhood.</p>
+
+        <figure class="story-photo">
+            <div id="static-map-tirumali" class="static-map"></div>
+        </figure>
 
         <p>Tirumali’s home is less than 200 feet from Interstate 90, one of the main highways that passes through
             downtown Chicago.</p>
@@ -961,11 +1035,14 @@
         //     e.g. "5 lines share this junction"), or a specific
         //     CTA_LINE_COLORS key like 'Red' (that line bolded, every other
         //     line faded down) -- see setLineEmphasis in setupMapLayers.
-        //   - pins: 0-2 [longitude, latitude] points to drop a marker on for
+        //   - pins: 0-2 { at: [longitude, latitude], label } pin drops for
         //     this step (initScrollyTour keeps a small reusable marker pool,
         //     added/removed/repositioned per step -- not tied to any one
         //     building's real geometry, unlike the old spotlight approach,
         //     so it can point at a specific address OR a whole neighborhood).
+        //     label shows as a small text tag next to the pin -- the
+        //     neighborhood name on the city-wide shot, the street address
+        //     once a step zooms into one specific building.
         //   - showNoiseLegend: whether the mini gray->red noise-color key
         //     shows on this step -- off for the opening city-wide shot
         //     (nothing to key yet, individual buildings don't render below
@@ -976,20 +1053,39 @@
         //     the previous version of this tour: every building always shows
         //     its real color as soon as it's in view, the same as the
         //     explore map at the bottom of the page).
+        //   - inlineNoiseLegend: shows the same key inline in this step's
+        //     own card instead (see .step-card-noise-legend) -- used just
+        //     once, on the key's first appearance, so it's introduced as
+        //     part of the narrative rather than popping up on the map with
+        //     no explanation. Pair with showNoiseLegend: false on that same
+        //     step (the floating version takes over starting the next one).
         // Many steps deliberately repeat the same center/zoom as the one
         // before -- the camera holds still while pins/highlight change
         // underneath it.
         // ============================================================
         const STORY_STEPS = [
             {
-                // Opening shot: the whole city, Red line bolded, pins on the
-                // two neighborhoods Moring and his partner compared.
-                center: [-87.6298, 41.8781],
-                zoom: 10.5,
+                // Opening shot: the CTA system (not the full city limits --
+                // the Red Line's 95th St. terminus is well short of the
+                // city's actual south edge, so fitting to the network
+                // rather than the boundary avoids a lot of empty space at
+                // the bottom), Red line bolded, pins on the two specific
+                // buildings the next few steps compare. center/zoom is the
+                // mobile-safe, city-centered framing; centerDesktop/
+                // zoomDesktop (see stepCamera) push the Loop toward the
+                // right side of a wide screen instead -- not dead center,
+                // clear of the step card on the left, but not hugging the
+                // right edge either.
+                center: [-87.732, 41.834],
+                zoom: 9.0,
+                centerDesktop: [-87.77, 41.90],
+                zoomDesktop: 10.2,
                 card: 'text',
-                title: 'A walk on the North Side',
                 text: 'Moring and his partner walked from Edgewater to Lincoln Park to get a feel for various neighborhoods on the city’s north side. All along their route they could hear the L’s persistent noise.',
-                pins: [[-87.664, 41.9834], [-87.6392, 41.9325]],
+                pins: [
+                    { at: [-87.6633384, 41.9887659], label: 'Edgewater' },
+                    { at: [-87.6476453, 41.9194765], label: 'Lincoln Park' }
+                ],
                 highlight: 'Red',
                 showNoiseLegend: false
             },
@@ -999,20 +1095,30 @@
                 center: [-87.6633, 41.9888],
                 zoom: 15.9,
                 card: 'text',
-                title: 'Edgewater',
                 text: 'In Edgewater, a largely residential neighborhood on the city’s north side, the elevated tracks run above an alley and are used by the Red Line every day and the Purple Line during peak weekday hours.',
                 pins: [],
                 highlight: 'Red',
-                showNoiseLegend: true
+                // The noise-color key's first appearance shows inline in
+                // this step's own card (see .step-card-noise-legend) rather
+                // than floating on the map -- showNoiseLegend flips to true
+                // starting the NEXT step, once the key has already been
+                // introduced and can move to its normal spot on the map.
+                showNoiseLegend: false,
+                inlineNoiseLegend: true
             },
             {
                 // Same view, pin the specific building.
                 center: [-87.6633, 41.9888],
                 zoom: 15.9,
                 card: 'text',
-                title: '1315 W. Rosedale Ave.',
                 text: 'If Moring and his partner chose to live here, at 1315 W Rosedale, they would be about 1,200 feet from the L tracks. And every time the train passes it would sound about 70dB loud at their home (a similar volume to being in the same room as a washing machine).',
-                pins: [[-87.6633384, 41.9887659]],
+                pins: [{ at: [-87.6633384, 41.9887659], label: '1315 W. Rosedale Ave.' }],
+                // Nearest point on the L tracks to 1315 W Rosedale, found by
+                // nearest-point-on-line lookup against cta_lines_4326.geojson
+                // (~1,174 ft away -- matches the "about 1,200 feet" in the
+                // text above closely enough to illustrate, not claim more
+                // precision than that).
+                distanceLine: { from: [-87.6633384, 41.9887659], to: [-87.6590202, 41.9889494], label: '1,200 ft' },
                 highlight: 'Red',
                 showNoiseLegend: true
             },
@@ -1021,9 +1127,9 @@
                 center: [-87.6633, 41.9888],
                 zoom: 15.9,
                 card: 'text',
-                title: '97,000',
                 text: 'Trains run on this section of the tracks about 480 times every day. Taking into account other factors, like sound coming from multiple directions as the train passes the building, this building has a daily noise exposure value of about 97,000.',
-                pins: [[-87.6633384, 41.9887659]],
+                pins: [{ at: [-87.6633384, 41.9887659], label: '1315 W. Rosedale Ave.' }],
+                distanceLine: { from: [-87.6633384, 41.9887659], to: [-87.6590202, 41.9889494], label: '1,200 ft' },
                 highlight: 'Red',
                 showNoiseLegend: true
             },
@@ -1032,9 +1138,11 @@
                 center: [-87.6476, 41.9195],
                 zoom: 15.9,
                 card: 'text',
-                title: '2042 N. Burling St.',
                 text: 'Or, Moring and his partner could live here, at 2042 N Burling St., in the trendy Lincoln Park neighborhood. It’s a similar 1,200 feet-or-so from the nearest CTA tracks (which are used by the Red, Purple and Brown lines).',
-                pins: [[-87.6476453, 41.9194765]],
+                pins: [{ at: [-87.6476453, 41.9194765], label: '2042 N. Burling St.' }],
+                // Nearest point on the L tracks to 2042 N Burling (~1,370 ft
+                // away) -- see the Rosedale step's comment above.
+                distanceLine: { from: [-87.6476453, 41.9194765], to: [-87.6526806, 41.9193091], label: '1,200 ft' },
                 highlight: null,
                 showNoiseLegend: true
             },
@@ -1043,9 +1151,9 @@
                 center: [-87.6476, 41.9195],
                 zoom: 15.9,
                 card: 'text',
-                title: '160,000',
                 text: 'Just like the Edgewater property, every time the train passes by this home on Burling it would generate about 70dB of sound. But, thanks to the addition of the Brown Line traffic, this section of tracks sees about 800 daily train trips – nearly double what it was in Edgewater. This means that, taking into account noise coming from multiple directions, this Burling property has a daily noise exposure value of over 160,000.',
-                pins: [[-87.6476453, 41.9194765]],
+                pins: [{ at: [-87.6476453, 41.9194765], label: '2042 N. Burling St.' }],
+                distanceLine: { from: [-87.6476453, 41.9194765], to: [-87.6526806, 41.9193091], label: '1,200 ft' },
                 highlight: null,
                 showNoiseLegend: true
             },
@@ -1054,7 +1162,6 @@
                 center: [-87.6294, 41.8823],
                 zoom: 14.4,
                 card: 'text',
-                title: 'Back to the Loop',
                 text: 'Ultimately, though, Moring found a place in the Loop – not on the North side – that met all their criteria. It fit their budget, too.',
                 pins: [],
                 highlight: null,
@@ -1062,34 +1169,31 @@
             },
             {
                 // Zoom to Moring's actual building/junction, pin it.
-                center: [-87.636564, 41.886142],
+                center: [-87.634637, 41.885503],
                 zoom: 15.87,
                 card: 'text',
-                title: '215 W. Lake St.',
                 text: 'They live in this building, at 215 W Lake St., in the Loop. Their unit overlooks one of the busiest junctions in the entire L system, part of the path of five different L lines.',
-                pins: [[-87.636564, 41.886142]],
+                pins: [{ at: [-87.634637, 41.885503], label: '215 W. Lake St.' }],
                 highlight: null,
                 showNoiseLegend: true
             },
             {
                 // Same view/pin, highlight every line through the junction.
-                center: [-87.636564, 41.886142],
+                center: [-87.634637, 41.885503],
                 zoom: 15.87,
                 card: 'text',
-                title: 'A thousand trains a day',
                 text: 'Almost a thousand total trains pass through this junction every single day. At peak times, trains run through every 45-60 seconds.',
-                pins: [[-87.636564, 41.886142]],
+                pins: [{ at: [-87.634637, 41.885503], label: '215 W. Lake St.' }],
                 highlight: 'all',
                 showNoiseLegend: true
             },
             {
                 // Same view/pin/highlight, the daily noise-exposure number.
-                center: [-87.636564, 41.886142],
+                center: [-87.634637, 41.885503],
                 zoom: 15.87,
                 card: 'text',
-                title: 'Almost 250,000',
                 text: 'Taking into account how close Moring is to the tracks – about 50 feet to the nearest tracks and 200 feet to the rail junction – and the high frequency of trains that pass by every day, Moring’s building has a daily noise exposure value of almost 250,000, among the highest estimated noise value of any residential building in the city.',
-                pins: [[-87.636564, 41.886142]],
+                pins: [{ at: [-87.634637, 41.885503], label: '215 W. Lake St.' }],
                 highlight: 'all',
                 showNoiseLegend: true
             }
@@ -1105,8 +1209,11 @@
             // CARTO's free, key-free vector basemap -- a dark style with no
             // account/token required, so this project stays fully self-contained.
             style: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
-            center: [-87.6298, 41.8781],                // [longitude, latitude] of Chicago -- the overview shot
-            zoom: 10.5,
+            // stepCamera (defined further down, but hoisted) picks step 1's
+            // mobile-vs-desktop framing -- starting the map here already at
+            // the right one avoids a needless animated flyTo on page load
+            // from a mismatched default to the correct opening shot.
+            ...stepCamera(STORY_STEPS[0]),
             interactive: false          // this map is driven entirely by scroll position, not by the reader's
             // own drag/scroll/zoom gestures -- see STORY_STEPS above. Hover
             // tooltips still work: MapLibre dispatches those regardless of
@@ -1126,7 +1233,17 @@
             style: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
             center: [-87.6298, 41.8781],
             zoom: 10.5,
-            hash: true
+            hash: true,
+            // Without this, a reader scrolling PAST this map on their way down
+            // the page has their scroll silently swallowed and turned into a
+            // zoom the moment their cursor happens to be over the map -- there's
+            // no way to tell it's about to happen. cooperativeGestures requires
+            // holding ctrl/cmd to scroll-zoom (MapLibre shows its own "use ctrl +
+            // scroll to zoom" overlay on a bare scroll attempt), so a plain
+            // scroll always keeps moving the page, and zooming the map is an
+            // explicit, deliberate gesture instead of an accident of pointer
+            // position.
+            cooperativeGestures: true
         });
 
         // City of Chicago boundary polygon -- used below to hide basemap
@@ -1294,9 +1411,9 @@
         //     map does) to skip hover/legend entirely -- this project's
         //     guided tour is meant to be watched, not poked at; that's what
         //     the explore map at the bottom of the page is for.
-        // Calls onReady({ setLineEmphasis }) once everything's added, for
-        // the scrolly-specific step logic that drives it -- harmless to
-        // ignore if unused.
+        // Calls onReady({ setLineEmphasis, setDistanceLine }) once
+        // everything's added, for the scrolly-specific step logic that
+        // drives them -- harmless to ignore if unused.
         function setupMapLayers(mapInstance, {
             legendEl = null, tooltipEl = null, drawerEl = null,
             hiddenLevelIds = []
@@ -1554,6 +1671,86 @@
                     }
                 });
 
+                // Every addLayer call above appended on top of whatever was
+                // already in the style -- which buried the basemap's own
+                // city/neighborhood/etc. labels (id prefix "place_") under
+                // our opaque building/grid fills and CTA lines. Re-raise
+                // them all back to the top, in their existing relative
+                // order, so labels stay legible over the data.
+                for (const id of mapInstance.getStyle().layers.map((l) => l.id).filter((id) => id.startsWith('place_'))) {
+                    mapInstance.moveLayer(id);
+                }
+
+                // A single dashed reference line + "N,NNN ft" label, from a
+                // building's pin to the nearest point on the L tracks --
+                // driven by STORY_STEPS' distanceLine field (see
+                // setDistanceLine below), one building at a time, so a
+                // single source/pair of layers (added on top of everything,
+                // including the place_ labels just re-raised above) is
+                // enough rather than one per building.
+                mapInstance.addSource('distance-line', {
+                    type: 'geojson',
+                    data: { type: 'FeatureCollection', features: [] }
+                });
+                mapInstance.addLayer({
+                    id: 'distance-line-line',
+                    type: 'line',
+                    source: 'distance-line',
+                    paint: {
+                        'line-color': '#3b82f6',
+                        'line-width': 2,
+                        'line-dasharray': [2, 1.5]
+                    }
+                });
+                mapInstance.addLayer({
+                    id: 'distance-line-label',
+                    type: 'symbol',
+                    source: 'distance-line',
+                    layout: {
+                        'text-field': ['get', 'label'],
+                        'text-font': ['Montserrat Regular', 'Open Sans Regular', 'Noto Sans Regular', 'HanWangHeiLight Regular', 'NanumBarunGothic Regular'],
+                        'text-size': 12,
+                        'text-offset': [0, -0.7]
+                    },
+                    paint: {
+                        'text-color': '#3b82f6',
+                        'text-halo-color': '#0c0c0b',
+                        'text-halo-width': 1.5
+                    }
+                });
+
+                // Called per tour step with from/to/label = null to clear the
+                // line, or a building's pin coordinate, the nearest point on
+                // the L tracks, and a label string to draw it. The label is
+                // its own point feature (a third of the way from the
+                // building toward the tracks) rather than relying on the
+                // line's own geometric center: the step card sits on the
+                // left, and for a building whose nearest track happens to be
+                // WEST of it (e.g. 2042 N Burling), the true center of that
+                // line lands right under the card. Anchoring close to the
+                // building/pin end instead keeps it clear of the card
+                // regardless of which side the tracks are on.
+                function setDistanceLine(from, to, label) {
+                    mapInstance.getSource('distance-line').setData({
+                        type: 'FeatureCollection',
+                        features: from ? [
+                            {
+                                type: 'Feature',
+                                properties: {},
+                                geometry: { type: 'LineString', coordinates: [from, to] }
+                            },
+                            {
+                                type: 'Feature',
+                                properties: { label },
+                                geometry: {
+                                    type: 'Point',
+                                    coordinates: [from[0] + (to[0] - from[0]) * 0.2, from[1] + (to[1] - from[1]) * 0.2]
+                                }
+                            }
+                        ] : []
+                    });
+                }
+
                 // Called per tour step with target = null (no emphasis, every
                 // line at normal width/opacity), 'all' (every line bold, none
                 // dimmed -- e.g. "5 lines share this junction"), or a specific
@@ -1580,7 +1777,7 @@
                 // meant to be poked at -- see setupMapLayers' doc comment above),
                 // while the explore map always passes all three.
                 if (!tooltipEl || !drawerEl || !legendEl) {
-                    if (onReady) onReady({ setLineEmphasis });
+                    if (onReady) onReady({ setLineEmphasis, setDistanceLine });
                     return;
                 }
 
@@ -1715,16 +1912,31 @@
                 mapInstance.on('zoom', updateLegend);
                 updateLegend();
 
-                if (onReady) onReady({ setLineEmphasis });
+                if (onReady) onReady({ setLineEmphasis, setDistanceLine });
             });
+        }
+
+        // A step's center/zoom, unless it also sets centerDesktop/zoomDesktop
+        // AND the viewport is wider than the same 700px breakpoint the
+        // mobile step-card/legend layout switches on -- lets step 1 push the
+        // Loop toward the right side of a wide screen (clear of the step
+        // card on the left) without shoving the whole city off-screen on a
+        // narrow one, where there's no room to spare for that kind of
+        // asymmetric framing.
+        function stepCamera(step) {
+            const wide = window.innerWidth > 700;
+            return {
+                center: (wide && step.centerDesktop) ? step.centerDesktop : step.center,
+                zoom: (wide && step.zoomDesktop != null) ? step.zoomDesktop : step.zoom
+            };
         }
 
         // Renders `steps` into #<stepsContainerId>, then watches each one
         // with IntersectionObserver so `mapInstance` flies to a new step
-        // (and applyHighlight(step.highlight) runs) as it crosses the
-        // middle of the viewport -- shared by both scrollytelling sections
-        // on this page. To change the tour, edit STORY_STEPS above; this
-        // function doesn't need to change for that.
+        // (and applyHighlight(step) runs) as it crosses the middle of the
+        // viewport -- shared by both scrollytelling sections on this page.
+        // To change the tour, edit STORY_STEPS above; this function doesn't
+        // need to change for that.
         function initScrollyTour({ steps, mapInstance, stepsContainerId, stickyId, applyHighlight, pinColor, noiseLegendEl }) {
             const stepsContainer = document.getElementById(stepsContainerId);
             const stickyEl = document.getElementById(stickyId);
@@ -1733,11 +1945,25 @@
             // created (at most 2 needed, for the opening city-wide shot's
             // two neighborhoods; every other step uses 0 or 1) and just
             // repositioned/added/removed per step rather than recreated,
-            // so there's no marker churn as the reader scrolls.
+            // so there's no marker churn as the reader scrolls. Each pin
+            // gets a paired text-label marker (the neighborhood name on the
+            // city-wide shot, the street address once zoomed into a
+            // building) -- a plain DOM element rather than MapLibre's own
+            // Popup, positioned with a fixed pixel offset from the pin's
+            // anchor point so it reads consistently at any zoom.
             const markerPool = [];
+            const labelPool = [];
             function markerAt(i) {
-                if (!markerPool[i]) markerPool[i] = new maplibregl.Marker({ color: pinColor || '#ff5a3c' });
+                if (!markerPool[i]) markerPool[i] = new maplibregl.Marker({ color: pinColor || '#3b82f6' });
                 return markerPool[i];
+            }
+            function labelAt(i) {
+                if (!labelPool[i]) {
+                    const el = document.createElement('div');
+                    el.className = 'pin-label';
+                    labelPool[i] = new maplibregl.Marker({ element: el, anchor: 'left', offset: [14, -32] });
+                }
+                return labelPool[i];
             }
 
             steps.forEach((step, i) => {
@@ -1745,13 +1971,19 @@
                 el.className = 'step step-tour';
                 el.dataset.index = String(i);
 
-                const indexLabel = `${String(i + 1).padStart(2, '0')} / ${String(steps.length).padStart(2, '0')}`;
                 if (step.card === 'text') {
                     el.innerHTML = `
                         <div class="step-card">
-                            <p class="step-index">${indexLabel}</p>
-                            <h3>${step.title}</h3>
                             <p>${step.text}</p>
+                            ${step.inlineNoiseLegend ? `
+                            <div class="step-card-noise-legend">
+                                <div class="legend-title">Daily Train Noise</div>
+                                <div class="ramp" style="background: linear-gradient(to right, #27272a, #b62b2b);"></div>
+                                <div class="ticks">
+                                    <span>Less Train Noise</span>
+                                    <span>More Train Noise</span>
+                                </div>
+                            </div>` : ''}
                         </div>`;
                 } else if (step.card === 'image') {
                     // EDIT ME (in STORY_STEPS above): once
@@ -1761,7 +1993,6 @@
                     // built from data already.
                     el.innerHTML = `
                         <div class="step-card step-card-image">
-                            <p class="step-index">${indexLabel}</p>
                             <div class="step-card-photo">
                                 <img src="${step.image.src}" alt="${step.image.alt}"
                                     onerror="this.replaceWith(Object.assign(document.createElement('div'), {className: 'step-card-photo-placeholder', textContent: 'Photo placeholder — add ' + this.getAttribute('src')}))">
@@ -1779,13 +2010,21 @@
 
             function goToStep(i) {
                 const step = steps[i];
-                mapInstance.flyTo({ center: step.center, zoom: step.zoom, essential: true, duration: 1200 });
-                applyHighlight(step.highlight);
+                const cam = stepCamera(step);
+                mapInstance.flyTo({ center: cam.center, zoom: cam.zoom, essential: true, duration: 1200 });
+                applyHighlight(step);
 
                 const pins = step.pins || [];
                 for (let p = 0; p < 2; p++) {
-                    if (pins[p]) markerAt(p).setLngLat(pins[p]).addTo(mapInstance);
-                    else if (markerPool[p]) markerPool[p].remove();
+                    if (pins[p]) {
+                        markerAt(p).setLngLat(pins[p].at).addTo(mapInstance);
+                        const label = labelAt(p);
+                        label.getElement().textContent = pins[p].label;
+                        label.setLngLat(pins[p].at).addTo(mapInstance);
+                    } else {
+                        if (markerPool[p]) markerPool[p].remove();
+                        if (labelPool[p]) labelPool[p].remove();
+                    }
                 }
                 if (noiseLegendEl) noiseLegendEl.classList.toggle('is-visible', !!step.showNoiseLegend);
 
@@ -1821,14 +2060,21 @@
 
         setupMapLayers(map, {
             hiddenLevelIds: ['grid300', 'grid120', 'grid45', 'grid18']
-        }, ({ setLineEmphasis }) => {
+        }, ({ setLineEmphasis, setDistanceLine }) => {
             initScrollyTour({
                 steps: STORY_STEPS,
                 mapInstance: map,
                 stepsContainerId: 'scrolly-steps',
                 stickyId: 'scrolly-sticky',
-                applyHighlight: (highlight) => setLineEmphasis(highlight),
-                pinColor: '#ff5a3c',
+                applyHighlight: (step) => {
+                    setLineEmphasis(step.highlight);
+                    setDistanceLine(
+                        step.distanceLine ? step.distanceLine.from : null,
+                        step.distanceLine && step.distanceLine.to,
+                        step.distanceLine && step.distanceLine.label
+                    );
+                },
+                pinColor: '#3b82f6',
                 noiseLegendEl: document.getElementById('scrolly-noise-legend')
             });
         });
@@ -1837,6 +2083,35 @@
             legendEl: document.getElementById('explore-legend'),
             tooltipEl: document.getElementById('explore-tooltip'),
             drawerEl: document.getElementById('explore-drawer')
+        });
+
+        // Small non-interactive maps dropped into the outro text as a visual
+        // break (see .static-map in <style> and the <figure> markup around
+        // Trumbo's and Tirumali's stories) -- same style/data/marker
+        // convention as the scrolly map above, just with one fixed camera
+        // and a single pin, no scroll-driven behavior of its own.
+        const STATIC_MAPS = [
+            { containerId: 'static-map-trumbo', at: [-87.665840, 41.899038], label: '1500 block of W. Walton St.' },
+            { containerId: 'static-map-tirumali', at: [-87.762073, 41.971778], label: '5300 block of W. Argyle St.' }
+        ];
+        STATIC_MAPS.forEach((cfg) => {
+            const staticMap = new maplibregl.Map({
+                container: cfg.containerId,
+                style: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
+                center: cfg.at,
+                zoom: 15.4,
+                interactive: false
+            });
+            setupMapLayers(staticMap, {
+                hiddenLevelIds: ['grid300', 'grid120', 'grid45', 'grid18']
+            }, () => {
+                new maplibregl.Marker({ color: '#3b82f6' }).setLngLat(cfg.at).addTo(staticMap);
+                const labelEl = document.createElement('div');
+                labelEl.className = 'pin-label';
+                labelEl.textContent = cfg.label;
+                new maplibregl.Marker({ element: labelEl, anchor: 'left', offset: [14, -32] })
+                    .setLngLat(cfg.at).addTo(staticMap);
+            });
         });
 
         // Zoom-in/zoom-out/compass buttons and the address search box --
