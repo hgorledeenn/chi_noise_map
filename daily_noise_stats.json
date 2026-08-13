@@ -1,6 +1,8 @@
 {
   "count": 820600,
   "skipped_non_multipolygon": 0,
+  "address_matched": 816434,
+  "address_matched_fraction": 0.9949232269071411,
   "daily_noise_min": 0.0,
   "daily_noise_max": 600481.4024419838,
   "daily_noise_nonzero_fraction": 0.1983487691932732,

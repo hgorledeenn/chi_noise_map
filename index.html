@@ -273,6 +273,19 @@
             border-top: 1px solid var(--paper-rule);
         }
 
+        .story-footer a {
+            color: var(--ink-muted);
+            text-decoration: underline;
+            text-decoration-color: var(--accent);
+            transition: background-color .15s ease;
+        }
+
+        .story-footer a:hover,
+        .story-footer a:focus-visible {
+            background-color: var(--accent);
+            color: var(--ink);
+        }
+
         /* ================================================================
            SCROLLYTELLING MAP
            ================================================================
@@ -653,10 +666,24 @@
 
         .map-tooltip .name {
             font-weight: 700;
+            font-size: 14px;
+            margin-bottom: 3px;
         }
 
         .map-tooltip .sub {
             color: var(--ink-muted);
+        }
+
+        /* The individual-building tooltip/drawer's divider between the
+           percentile line and the trip-count/noise-score lines below it
+           (see LEVELS' buildings.describe) -- a plain <hr> renders as a
+           default 3D-beveled gray bar, so it's restyled to a single thin
+           rule matching the rest of the site's dark theme. */
+        .map-tooltip .sub hr,
+        .map-drawer .sub hr {
+            border: none;
+            border-top: 1px solid var(--paper-rule);
+            margin: 6px 0;
         }
 
         .map-drawer {
@@ -1021,8 +1048,7 @@
          EDIT-FOOTER -- methodology / credits / data-source notes.
          ================================================================ -->
     <footer class="story-footer">
-        <p>EDIT ME: methodology note -- how daily noise exposure was modeled, what data sources were used (CTA
-            train schedules, building footprints, etc.), and who to contact with questions.</p>
+        <p>For more on how this map's noise model was built, visit <a href="https://hgorledeenn.github.io/chi_noise_map" target="_blank">hgorledeenn.github.io/chi_noise_map</a>.</p>
     </footer>
 
     <script>
@@ -1307,6 +1333,15 @@
                 sub: `Area average across ${p.building_count.toLocaleString()} ${noun}`
             };
         }
+
+        // A building with no measured train noise at all has daily_noise ===
+        // noise_from_one_train === num_radials === 0 -- 0/0 rather than a
+        // real ratio, so both derived stats below fall back to 0 in that case
+        // instead of NaN.
+        function safeRatio(numerator, denominator) {
+            return denominator > 0 ? Math.round(numerator / denominator) : 0;
+        }
+
         const LEVELS = [
             {
                 id: 'grid300',
@@ -1370,9 +1405,19 @@
                 maxzoom: 24,
                 fade: [13.85, 0, 14.15, 0.75],
                 legendScope: 'Individual buildings',
+                // address and noise_percentile are both baked into the tile
+                // data itself (see scripts/prep_buildings.py's ADDRESS JOIN
+                // and NOISE PERCENTILE sections, plus fetch_address_points.py)
+                // -- one-time offline computations rather than per-hover
+                // work. ~0.5% of buildings (no address point within range --
+                // garages, sheds, etc.) have no address match, hence the
+                // fallback.
                 describe: (p) => ({
-                    name: `${Math.round(p.daily_noise).toLocaleString()} daily noise exposure`,
-                    sub: `From one train pass: ${Math.round(p.noise_from_one_train).toLocaleString()}<br>Intersected daily noise: ${Math.round(p.intersected_daily_noise).toLocaleString()}<br>Radial samples: ${p.num_radials}`
+                    name: p.address || 'Address unavailable',
+                    sub: `More noise than <b>${p.noise_percentile}%</b> of buildings near the CTA`
+                        + `<hr>`
+                        + `Daily train trips nearby: ${safeRatio(p.daily_noise, p.noise_from_one_train).toLocaleString()}`
+                        + `<br>Calculated noise score: ${Math.round(p.daily_noise).toLocaleString()}`
                 })
             }
         ];
